@@ -3,15 +3,23 @@ import DishCount from "@/components/DishCountComponent.vue";
 import Modal from "@/components/ModalComponent.vue";
 import ChangeDay from "@/components/ChangeDayButtonComponent.vue";
 
-import { ref, computed, onMounted } from "vue";
+import { ref, watch, onMounted } from "vue";
 import axios from "axios";
 import { useRoute } from "vue-router";
-import moment from "moment";
+import usePriceCalculation from "@/composable/priceCalculation";
+import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
 
 const route = useRoute();
+const { totalPrice, setDishesArray, totalPriceByDays, activeOrderBtn } =
+  usePriceCalculation();
+
+const {
+  getCountOfMacronutrient,
+  macronutrientsDishesByDays,
+  totalMacronutrientByDays,
+} = useMacronutrientsCalculation();
 
 const baseUrl = import.meta.env.VITE_APP_BASE_URL;
-const apiUrl = import.meta.env.VITE_APP_API_URL;
 const disabledBtn = ref(false);
 const showModal = ref(false);
 const orderComplete = ref(false);
@@ -31,22 +39,6 @@ const props = defineProps({
 
 const items = ref(props.items);
 
-const currentDay = computed(() => {
-  let current;
-  moment().isoWeekday() > 4
-    ? (current = 1)
-    : (current = moment().isoWeekday() + 1);
-  return current;
-});
-
-const activeOrderBtn = computed(() => {
-  let dishesCount = 0;
-  items.value.forEach((item) => {
-    dishesCount = dishesCount + item.dishes.length;
-  });
-  return dishesCount > 0 ? true : false;
-});
-
 const getPhoto = (photo) => {
   if (photo === null || photo === "null") {
     return "@/assets/img/no-photo-dish.png";
@@ -57,6 +49,17 @@ const getPhoto = (photo) => {
       photo.replace(/[\[\]']+/g, "").replace(/^"(.+)"$/, "$1")
     );
   }
+};
+
+const getDishPrice = (dishes = [], id) => {
+  const filteredDishes = dishes.filter((dish) => dish.dish_id === id);
+
+  const totalPrice = filteredDishes.reduce((total, dish) => {
+    return total + dish.quantity * dish.price;
+  }, 0);
+
+  // return totalPrice > 0 ? `€ ${Math.floor(totalPrice * 100) / 100}` : "";
+  return `€ ${Math.floor(totalPrice * 100) / 100}`;
 };
 
 const emits = defineEmits(["orderChange"]);
@@ -76,28 +79,34 @@ const emits = defineEmits(["orderChange"]);
 const saveOrder = async () => {
   disabledBtn.value = !disabledBtn.value;
 
+  console.log(items.value, "items.value");
+
   let orderResponse;
   try {
-    const { data: response } = await axios.post(apiUrl + route.params.userId, {
-      days: items.value,
-      comment: comment.value,
-    });
+    const { data: response } = await axios.post(
+      baseUrl + "api/save-order/" + route.params.userId,
+      {
+        days: items.value,
+        comment: comment.value,
+      }
+    );
+    // console.log(response, "response");
     const { data: orderDetails } = response;
     orderResponse = orderDetails;
   } catch (e) {
     console.log(e);
   }
 
-  //console.log(orderDetails, 'orderDetails')
-  if (orderResponse.data?.id) {
-    orderId.value = orderResponse.data.id;
-    pdfLink.value = orderResponse.data.pdf_link;
+  console.log(orderResponse, "orderResponse");
+  if (orderResponse?.id) {
+    orderId.value = orderResponse.id;
+    pdfLink.value = orderResponse.pdf_link;
     showModal.value = !showModal.value;
     orderComplete.value = !orderComplete.value;
   } else {
     alert("Oops something went wrong");
   }
-  this.disabledBtn = !this.disabledBtn;
+  disabledBtn.value = !disabledBtn.value;
 };
 
 const setToNexDay = (dish, day, type) => {
@@ -162,26 +171,65 @@ const setToNexDay = (dish, day, type) => {
 };
 
 const changeOrder = () => {
-  // emits("orderChange", true);
   emits("orderChange", items.value);
 };
 
-onMounted(async () => {
-  let currentDayName = props.days.find(
-    (day) => day.id === currentDay.value
-  ).name;
+watch(
+  () => items.value,
+  (items) => {
+    setDishesArray(items);
+    macronutrientsDishesByDays.value = items;
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+);
 
-  const dishesByDay = await items.value.find(
-    (item) => item.dayName === currentDayName
+onMounted(async () => {
+  const dishesByMonday = await items.value.find(
+    (item) => item.dayName === "menu_for_monday"
   ).dishes;
+
+  await dishesByMonday.forEach((item) => {
+    item.next_day = true;
+  });
+
+  const dishesByTuesday = await items.value.find(
+    (item) => item.dayName === "menu_for_tuesday"
+  ).dishes;
+
+  await dishesByTuesday.forEach((item) => {
+    item.next_day = true;
+  });
+
+  const dishesByWednesday = await items.value.find(
+    (item) => item.dayName === "menu_for_wednesday"
+  ).dishes;
+
+  await dishesByWednesday.forEach((item) => {
+    item.next_day = true;
+  });
+
+  const dishesByThursday = await items.value.find(
+    (item) => item.dayName === "menu_for_thursday"
+  ).dishes;
+
+  await dishesByThursday.forEach((item) => {
+    item.next_day = true;
+  });
+
+  const dishesByFriday = await items.value.find(
+    (item) => item.dayName === "menu_for_friday"
+  ).dishes;
+
+  await dishesByFriday.forEach((item) => {
+    item.next_day = true;
+  });
 
   const dishesBySaturday = await items.value.find(
     (item) => item.dayName === "menu_for_saturday"
   ).dishes;
-
-  await dishesByDay.forEach((item) => {
-    item.next_day = true;
-  });
 
   await dishesBySaturday.forEach((item) => {
     item.previous_day = true;
@@ -195,12 +243,16 @@ onMounted(async () => {
         <h1 class="order-page__title">Your order</h1>
       </div>
     </div>
-
-    <div v-if="items.length">
+    <div
+      v-if="items.length"
+      class="order-page__dishes-wrap"
+      :class="{ '_complete-order': orderComplete }"
+    >
       <div class="order-pdf-title" v-show="orderComplete">Your order:</div>
       <div class="order-page__body" v-for="item in items" :key="item.day">
         <div class="order-page__day-dishes" v-if="item.dishes.length">
           <div class="order-page__day-title">{{ item.day }}</div>
+
           <div v-if="item.dishes">
             <div v-for="dish in item.dishes" :key="dish.id" class="order-item">
               <div class="order-item__picture">
@@ -210,33 +262,164 @@ onMounted(async () => {
                 class="order-item__body"
                 :class="{ complete: orderComplete }"
               >
-                <div class="order-item__title">{{ dish.dish_name }}</div>
-                <div v-if="!orderComplete" class="order-item__count-wrap">
-                  <DishCount v-model="dish.quantity" :key="dish.quantity" />
-                  <ChangeDay
-                    v-if="dish.next_day || dish.previous_day"
-                    v-model="dish.quantity"
-                    :key="dish.quantity"
-                    :type="dish.next_day ? 'next' : 'prev'"
-                    @changeCount="
-                      setToNexDay(
-                        dish,
-                        item.day,
-                        dish.next_day ? 'next' : 'prev'
-                      )
-                    "
-                  />
+                <div class="order-item__title">
+                  <h2>{{ dish.dish_name }}</h2>
+                  <ul class="order-item__macronutrients">
+                    <li>{{ dish.dish_count }} g</li>
+                    <li>
+                      {{
+                        getCountOfMacronutrient(dish.proteins, dish.dish_count)
+                      }}
+                      p
+                    </li>
+                    <li>
+                      {{ getCountOfMacronutrient(dish.fats, dish.dish_count) }}
+                      f
+                    </li>
+                    <li>
+                      {{
+                        getCountOfMacronutrient(
+                          dish.carbohydrates,
+                          dish.dish_count
+                        )
+                      }}
+                      c
+                    </li>
+                    <li>
+                      {{
+                        getCountOfMacronutrient(dish.calories, dish.dish_count)
+                      }}
+                      kcal
+                    </li>
+                  </ul>
                 </div>
-                <div class="order-item__ordered-count" v-else>
-                  {{ dish.quantity }}
+                <div class="order-item__total">
+                  <div>
+                    {{
+                      getCountOfMacronutrient(dish.calories, dish.dish_count)
+                    }}
+                    kcal
+                  </div>
+                  <div>
+                    <span v-if="dish.dish_type === 'main'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].mainDishes,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                    <span v-else-if="dish.dish_type === 'vegetarian'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].vegetarians,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                    <span v-else-if="dish.dish_type === 'breakfast'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].breakfasts,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                    <span v-else-if="dish.dish_type === 'side'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].sides,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                  </div>
+                </div>
+                <div class="order-item__actions">
+                  <div v-if="!orderComplete" class="order-item__count-wrap">
+                    <DishCount v-model="dish.quantity" :key="dish.quantity" />
+                    <ChangeDay
+                      v-if="dish.next_day || dish.previous_day"
+                      v-model="dish.quantity"
+                      :key="dish.quantity"
+                      :type="dish.next_day ? 'next' : 'prev'"
+                      @changeCount="
+                        setToNexDay(
+                          dish,
+                          item.day,
+                          dish.next_day ? 'next' : 'prev'
+                        )
+                      "
+                    />
+                  </div>
+                  <div class="order-item__ordered-count" v-else>
+                    {{ dish.quantity }}
+                  </div>
+                  <div class="order-item__price">
+                    <span v-if="dish.dish_type === 'main'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].mainDishes,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                    <span v-else-if="dish.dish_type === 'vegetarian'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].vegetarians,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                    <span v-else-if="dish.dish_type === 'breakfast'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].breakfasts,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                    <span v-else-if="dish.dish_type === 'side'">
+                      {{
+                        getDishPrice(
+                          totalPriceByDays[item.day].sides,
+                          dish.dish_id
+                        )
+                      }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          <div class="day-price order-item__title">
+            <div class="day-price__day">
+              Total ({{ item.day.toLowerCase() }}):
+            </div>
+            <div class="day-price__calories">
+              {{ totalMacronutrientByDays[item.day].totalCalories }} kcal
+            </div>
+            <div class="day-price__price">
+              €
+              {{
+                Math.floor(Number(totalPriceByDays[item.day].total) * 100) / 100
+              }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-if="totalPrice" class="order-page__body order-total">
+        <div class="order-total__wrap">
+          <div class="order-total__title">Total (week):</div>
+          <div class="order-total__value">
+            € {{ Math.floor(Number(totalPrice) * 100) / 100 }}
+          </div>
         </div>
       </div>
     </div>
-    <div v-if="!orderComplete && activeOrderBtn" class="order-page__body">
+
+    <div v-if="!orderComplete" class="order-page__body">
       <textarea
         v-model="comment"
         class="input order-page__comment"
@@ -250,9 +433,8 @@ onMounted(async () => {
     <div class="order-page__body" v-if="!orderComplete">
       <div class="order-page__buttons">
         <button
-          v-if="activeOrderBtn"
           type="button"
-          :disabled="disabledBtn"
+          :disabled="disabledBtn || !activeOrderBtn"
           class="button button--success _fw"
           @click="saveOrder"
         >

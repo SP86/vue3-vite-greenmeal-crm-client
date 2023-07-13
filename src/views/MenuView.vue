@@ -1,94 +1,56 @@
 <script setup>
 import DaysListComponent from "@/components/DaysListComponent.vue";
+import DayTotalPanel from "@/components/DayTotalPanel.vue";
 import DishSlider from "@/components/DishSliderComponent.vue";
 import Order from "@/components/OrderComponent.vue";
 
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
-import moment from "moment";
+
+import usePriceCalculation from "@/composable/priceCalculation";
+import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
+import { DAYS } from "../constants.js";
 
 const route = useRoute();
+const {
+  totalPrice,
+  totalPriceByDays,
+  setDishTypeByMealType,
+  createDishesArrayByDays,
+  activeOrderBtn,
+  errorDays,
+} = usePriceCalculation();
+
+const { macronutrientsDishesByDays, totalMacronutrientByDays } =
+  useMacronutrientsCalculation();
 
 const apiUrl = import.meta.env.VITE_APP_API_URL;
 const menuAlias = import.meta.env.VITE_MENU_ALIAS;
 
 const menuPage = ref(true);
-const days = [
-  {
-    id: 1,
-    name: "menu_for_monday",
-    short: "Mo",
-    title: "Monday",
-    date: moment().isoWeekday(1).format("YYYY-MM-DD"),
-    show: false,
-  },
-  {
-    id: 2,
-    name: "menu_for_tuesday",
-    short: "Tu",
-    title: "Tuesday",
-    date: moment().isoWeekday(2).format("YYYY-MM-DD"),
-    show: false,
-  },
-  {
-    id: 3,
-    name: "menu_for_wednesday",
-    short: "We",
-    title: "Wednesday",
-    date: moment().isoWeekday(3).format("YYYY-MM-DD"),
-    show: false,
-  },
-  {
-    id: 4,
-    name: "menu_for_thursday",
-    short: "Th",
-    title: "Thursday",
-    date: moment().isoWeekday(4).format("YYYY-MM-DD"),
-    show: false,
-  },
-  {
-    id: 5,
-    name: "menu_for_friday",
-    short: "Fr",
-    title: "Friday",
-    date: moment().isoWeekday(5).format("YYYY-MM-DD"),
-  },
-  {
-    id: 6,
-    name: "menu_for_saturday",
-    short: "Sa",
-    title: "Saturday",
-    date: moment().isoWeekday(6).format("YYYY-MM-DD"),
-    show: false,
-  },
-];
+const days = DAYS;
 const currentDayName = ref("");
 const menuItems = ref({});
 const orderItems = ref([]);
 
-const activeOrderBtn = computed(() => {
-  let dishes = [];
-  days.forEach((day) => {
-    let groups = ["breakfast", "dinner", "sides", "four"];
+const fixedPanel = ref(null);
+const orderButton = ref(null);
 
-    if (menuItems.value[day.name]) {
-      groups.forEach((group) => {
-        if (
-          menuItems.value[day.name]?.[group] &&
-          menuItems.value[day.name][group]
-        ) {
-          menuItems.value[day.name][group].forEach((item) => {
-            if (item.count > 0) {
-              dishes.push(item.id);
-            }
-          });
-        }
-      });
-    }
+const getCurrentDayName = computed(() => {
+  return days.find((day) => {
+    return day.name === currentDayName.value;
   });
+});
 
-  return dishes.length > 0 ? true : false;
+const getTotalDayPrice = computed(() => {
+  let totalByDay = 0;
+  if (getCurrentDayName.value) {
+    if (totalPriceByDays.value) {
+      totalByDay = totalPriceByDays.value[getCurrentDayName.value.title];
+    }
+  }
+  return totalByDay?.total ? totalByDay.total : 0;
 });
 
 const setProgram = (program) => {
@@ -140,6 +102,9 @@ const setDishesByDishMeal = (menuDishes) => {
       allergens: menuDishesItem.dish.allergens,
       count: 0,
       dish_meal: menuDishesItem.dish_meal,
+      dish_type: setDishTypeByMealType(menuDishesItem.dish_meal),
+      dish_count: menuDishesItem.dish_count,
+      menu_dish_id: menuDishesItem.id,
       ingredients_description: menuDishesItem.dish.ingredients_description,
     };
     if (menuDishesItem.dish_meal > 0 && menuDishesItem.dish_meal <= 5) {
@@ -183,6 +148,9 @@ const setDishesAfterChanges = (dishes) => {
       allergens: newDish.allergens,
       count: newDish.quantity,
       dish_meal: newDish.dish_meal,
+      dish_type: setDishTypeByMealType(newDish.dish_meal),
+      dish_count: newDish.dish_count,
+      menu_dish_id: newDish.menu_dish_id,
       ingredients_description: newDish.ingredients_description,
     };
     if (newDish.dish_meal > 0 && newDish.dish_meal <= 5) {
@@ -222,7 +190,14 @@ const showOrderPage = () => {
                 dish_name: item.name,
                 quantity: item.count,
                 photos: item.photos,
+                calories: item.calories,
+                carbohydrates: item.carbohydrates,
+                fats: item.fats,
+                proteins: item.proteins,
                 dish_meal: item.dish_meal,
+                dish_type: setDishTypeByMealType(item.dish_meal),
+                dish_count: item.dish_count,
+                menu_dish_id: item.menu_dish_id,
                 allergens: item.allergens,
                 ingredients_description: item.ingredients_description,
                 next_day: false,
@@ -281,6 +256,22 @@ const showMenuPage = async (dishesFromOrder) => {
   window.scrollTo(0, 0);
 };
 
+watch(
+  () => menuItems.value,
+  (menu) => {
+    const dishesByDays = createDishesArrayByDays(menu);
+    macronutrientsDishesByDays.value = dishesByDays;
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+);
+
+const pageHeight = computed(() => {
+  return window.innerHeight;
+});
+
 onMounted(async () => {
   try {
     const { data: response } = await axios.get(
@@ -288,20 +279,45 @@ onMounted(async () => {
     );
     const { data: programData } = response;
     menuItems.value = setProgram(programData);
+    // console.log(programData, "programData");
   } catch (e) {
     console.log(e);
   }
 });
+
+function handleScroll() {
+  window.addEventListener("scroll", () => {
+    if (!menuPage.value) return;
+    const buttonPosition = orderButton.value.getBoundingClientRect().top - 50;
+    if (buttonPosition < pageHeight.value) {
+      fixedPanel.value.classList.remove("_show");
+    } else {
+      fixedPanel.value.classList.add("_show");
+    }
+  });
+}
+
+function handleResize() {
+  handleScroll();
+}
+
+window.onload = () => handleResize();
+window.onresize = () => handleResize();
 </script>
 
 <template>
   <div v-if="menuPage">
     <div class="menu-page">
       <div class="menu-page__header" id="menu-header">
-        <DaysListComponent :days="days" @updateDay="currentDayName = $event" />
+        <DaysListComponent
+          :days="days"
+          :error-days="errorDays"
+          :total-price="totalPrice"
+          @update-day="currentDayName = $event"
+          :total-macronutrient-by-days="totalMacronutrientByDays"
+        />
       </div>
-
-      <div v-if="menuItems[currentDayName]">
+      <div v-if="menuItems[currentDayName]" class="menu-page__wrap">
         <div
           v-if="menuItems[currentDayName].breakfast.length"
           class="menu-page__body _container"
@@ -347,17 +363,31 @@ onMounted(async () => {
           />
         </div>
       </div>
+      <DayTotalPanel
+        v-if="route.params.userId && getCurrentDayName?.short"
+        class="menu-page__day-total"
+        :total-price="getTotalDayPrice"
+        :current-day="getCurrentDayName"
+        :total-macronutrients="totalMacronutrientByDays"
+      />
     </div>
-    <div v-if="menuItems[currentDayName]" class="order-page__body">
+    <div class="fixed-total-panel" v-show="totalPrice" ref="fixedPanel">
+      Total: € {{ Math.floor(totalPrice * 100) / 100 }}
+    </div>
+    <div
+      v-show="menuItems[currentDayName]"
+      class="order-page__body menu-page__order-btn"
+    >
       <div class="order-page__buttons">
         <button
-          v-if="route.params.userId"
+          ref="orderButton"
+          v-show="route.params.userId"
           :disabled="!activeOrderBtn"
           type="button"
           class="button button--success _fw"
           @click="showOrderPage"
         >
-          <span>Order</span>
+          <span>Order | Total: € {{ Math.floor(totalPrice * 100) / 100 }}</span>
         </button>
       </div>
     </div>

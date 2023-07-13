@@ -6,7 +6,7 @@
 //<ШРИФТЫ>===============================================================================================
 
 //<Подключаем шрифты>=======================================================================================
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap&subset=cyrillic-ext');
+// @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap&subset=cyrillic-ext');
 //&display=swap&subset=cyrillic-ext
 //@import "fonts";
 //</Подключаем шрифты>=======================================================================================
@@ -16,7 +16,7 @@
 //</Иконочные шрифты>==========================================================================================
 
 //<Шрифт по умолчанию>==========================================================================================
-$fontFamily: 'Montserrat', sans-serif;
+$fontFamily: 'Nunito Sans', sans-serif;
 $fontSize: 16;
 //</Шрифт по умолчанию>==========================================================================================
 
@@ -86,7 +86,7 @@ body {
 //@import "pagging";
 //@import "popup";
 @import "header";
-@import "home";
+@import "common";
 @import "pages/menu-page";
 @import "pages/order-page";
 @import "modal";

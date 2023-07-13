@@ -15,7 +15,7 @@ const props = defineProps({
 
 const emits = defineEmits(["update:modelValue"]);
 
-const apiUrl = import.meta.env.VITE_APP_API_URL;
+const baseUrl = import.meta.env.VITE_APP_BASE_URL;
 
 const propModel = computed({
   get: function () {
@@ -45,7 +45,7 @@ onMounted(() => {
       </div>
       <div class="success-modal__buttons-wrap">
         <a
-          :href="apiUrl + pdfLink"
+          :href="baseUrl + '/storage/' + pdfLink"
           target="_blank"
           class="button button--success _fw"
         >

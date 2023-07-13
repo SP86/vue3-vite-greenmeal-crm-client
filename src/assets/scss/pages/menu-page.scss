@@ -1,4 +1,44 @@
 .menu-page {
+  position: relative;
+  &__day-total {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    max-width: 140px;
+    background: #FFFFFF;
+    box-shadow: 0px 16px 80px rgba(0, 117, 65, 0.07);
+    border-radius: 20px;
+    padding: 24px;
+    position: fixed;
+    top: 50%; 
+    right: 20px;
+    transform: translateY(-50%);
+    z-index: 9;
+    .day-total-card__title{ 
+      margin-bottom: 16px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-weight: 300;
+    }
+    ul {
+      display: flex;
+      flex-direction: column;
+      row-gap: 16px;
+      li {
+        display: flex;
+        column-gap: 8px;
+        span {
+          &:nth-child(1) {
+            font-family: 'Nunito Sans', sans-serif;
+            font-weight: 300;
+          }
+        }
+      }
+    }
+    
+    @media (min-width: $md2 + px) {
+      display: flex;
+    }
+  }
   &__title{
     @include adaptiv-value(font-size, 45, 34, 1);
     line-height: 100%;
@@ -56,6 +96,15 @@
   &__swiper {
     @media (max-width: $md3 + px) {
       max-width: 292px;
+    }
+  }
+  &__wrap {
+    .menu-page__body {
+      &:last-child {
+        .menu-page__divider {
+          display: none;
+        }
+      }
     }
   }
   &__body {
@@ -117,11 +166,98 @@
     }
   }
   &__days {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0 10px;
     transition: all 0.3s ease 0s;
+    display: flex;
+    flex-direction: column;
+    column-gap: 8px;
+    & > ul {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0 10px;
+      li {
+        &:not(.total-price) {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          @include adaptiv-value(width, 60, 40, 1);
+          @include adaptiv-value(height, 60, 40, 1);
+          border-radius: 50%;
+          border: 1px solid #1E9F38;
+          color: #1E9F38;
+          transition: all 0.3s ease 0s;
+          cursor: pointer;
+          span {
+            @include adaptiv-value(font-size, 14, 12, 1);
+          }
+          &.disabled {
+            background: #ccc;
+            color: #fff;
+            border: 1px solid #ccc;
+            cursor: default;
+          }
+          &.active {
+            background: #1E9F38;
+            color: #FFF;
+            &.error {
+              background: #DD3449;
+            }
+          }
+          &:not(.disabled) {
+            @media (any-hover: hover) {
+              &:hover {
+                background: #1E9F38;
+                color: #FFF;
+                &.error {
+                  background: #DD3449;
+                }
+              }
+            }          
+          }
+        }
+        &.total-price {
+          display: none;
+          position: absolute;
+          right: 20px;
+          color: #1E9F38;
+          font-weight: 500;
+        }
+        &.error {
+          border: 1px solid #DD3449;
+          color: #DD3449;
+        }
+      }
+    }
+    .day-total-card {
+      display: none;
+      column-gap: 16px;
+      margin: 8px auto 0 auto; 
+      &__title{
+        display: flex;
+        align-items: center;
+      }
+      ul {
+        display: flex;
+        column-gap: 16px;
+        li {
+          display: flex;
+          flex-direction: column;
+          row-gap: 5px;
+          text-align: center;
+          &._total {
+            display: none;
+          }
+          span {
+            &:nth-child(2) {
+              order: 1;
+            }
+            &:nth-child(1) {
+              order: 2;
+            }
+          }
+        } 
+      }
+    }
     &.sticky {
       position: fixed;
       top: 0;
@@ -130,39 +266,22 @@
       padding: 12px 0;
       z-index: 9;
       border-bottom: 1px solid #BBE2C3;
+      .total-price {
+        @media (min-width: $md3 + px) {
+          display: inline-block;
+        }
+      }
+      .day-total-card {
+        @media (max-width: $md2 + px) {
+          display: flex;
+        }
+      }
     }
+    
     @media (min-width: $md3 + px) {
       gap: 0 20px;
     }
-    li {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      @include adaptiv-value(width, 60, 40, 1);
-      @include adaptiv-value(height, 60, 40, 1);
-      border-radius: 50%;
-      border: 1px solid #1E9F38;
-      color: #1E9F38;
-      transition: all 0.3s ease 0s;
-      cursor: pointer;
-      span {
-        @include adaptiv-value(font-size, 14, 12, 1);
-      }
-      &.disabled {
-        background: #ccc;
-        color: #fff;
-        border: 1px solid #ccc;
-        cursor: default;
-      }
-      &.active {
-        background: #1E9F38;
-        color: #FFF;
-      }
-      &:not(.disabled):hover {
-        background: #1E9F38;
-        color: #FFF;
-      }
-    }
+    
   }
   &__divider {
     opacity: 0.1;
@@ -185,8 +304,23 @@
   }
   &__dishes{
     padding-bottom: 50px;
-    .dish {
-      /*margin-bottom: 50px;*/
+  }
+
+  &__order-btn {
+    @media (max-width: $md3 + px) {
+      margin-bottom: 0 !important;
+    }
+    .order-page__buttons {
+      @media (max-width: $md3 + px) {
+        padding: 12px 0;
+        border-top: 1px solid #C3E1C5;
+      }
+      .button {
+        @media (max-width: $md3 + px) {
+          height: 40px;
+          max-width: inherit;
+        }
+      }
     }
   }
 }
@@ -213,6 +347,10 @@
     color: #383836;
     text-align: center;
     margin-bottom: 25px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   &__body {
     position: relative;
@@ -223,8 +361,12 @@
     background-size: contain !important;
     margin-bottom: 25px;
     overflow: hidden;
+    &_active {
+      background: none !important;
+    }
     &:hover {
       @media (any-hover: hover) {
+        background: none !important;
         .dish__info {
           opacity: 1;
         }
@@ -313,6 +455,9 @@
       justify-content: center;
     }
   }
+  &__macronutrients {
+    margin-bottom: 24px;
+  }
   &__actions {
     width: 100%;
     position: relative;
@@ -342,4 +487,60 @@
 
 .swiper {
   width: 100%;
+}
+
+.fixed-total-panel {
+  display: none;
+  &._show {
+    @media (max-width: $md2 + px) {
+      display: block;
+    }
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    padding: 12px 15px;
+    text-align: right;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 100%;
+    color: #1E9F38;
+    border-top: 1px solid #C3E1C5;
+    background: #fff;
+    z-index: 9;
+  }
+}
+
+.day-total-card {
+  color: rgba(56, 56, 54, 0.6);
+  &__title {
+    font-weight: 300;
+    font-size: 13px;
+    line-height: 100%;
+  }
+  ul {
+    li {
+      font-size: 13px;
+      line-height: 100%;
+      span {
+        &:nth-child(2) {
+          font-weight: 300;
+        } 
+        &:nth-child(1) {
+          font-weight: 600;
+          color: #1E9F38;
+        }
+      }
+      &._total {
+        span {
+          font-weight: 600;
+          color: #1E9F38;
+        }
+        i {
+          font-style: normal;
+          font-weight: 300;
+          color: rgba(56, 56, 54, 0.6);
+        }
+      }
+    }
+  }
 }
