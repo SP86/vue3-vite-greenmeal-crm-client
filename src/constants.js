@@ -11,6 +11,8 @@ export const DISH_PRICES = {
   side: 0,
 };
 
+export const DISH_AlLERGENS = ["dairy", "seafood", "nuts", "gluten", "meat"];
+
 export const DAYS = [
   {
     id: 1,

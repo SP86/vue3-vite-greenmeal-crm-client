@@ -1,5 +1,6 @@
 <script setup>
 import DishCount from "@/components/DishCountComponent.vue";
+import DishAllergens from "@/components/DishAllergens.vue";
 import { ref, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
@@ -16,10 +17,6 @@ const item = ref(props.item);
 const baseUrl = import.meta.env.VITE_APP_BASE_URL;
 const checkPhoto = false;
 const isOpen = ref(false);
-
-const checkIcon = (alergents, val) => {
-  return alergents.includes(val);
-};
 
 const getPhoto = (photo) => {
   if (photo === null || photo === "null") {
@@ -81,55 +78,15 @@ watch(isOpen, async () => {
         <div class="dish__desc">
           {{ item.ingredients_description.replace(/<\/?[^>]+(>|$)/g, "") }}
         </div>
-        <div class="dish__icons">
-          <img
-            src="@/assets/img/icons/dairy.png"
-            alt="dairy"
-            :class="[
-              item.allergens && checkIcon(item.allergens, 'dairy') && '_active',
-            ]"
-          />
-          <img
-            src="@/assets/img/icons/seafood.png"
-            alt="seafood"
-            :class="[
-              item.allergens &&
-                checkIcon(item.allergens, 'seafood') &&
-                '_active',
-            ]"
-          />
-          <img
-            src="@/assets/img/icons/nuts.png"
-            alt="nuts"
-            :class="[
-              item.allergens && checkIcon(item.allergens, 'nuts') && '_active',
-            ]"
-          />
-          <img
-            src="@/assets/img/icons/spicy.png"
-            alt="spicy"
-            :class="[
-              item.allergens && checkIcon(item.allergens, 'spicy') && '_active',
-            ]"
-          />
-          <img
-            src="@/assets/img/icons/gluten.png"
-            alt="gluten"
-            :class="[
-              item.allergens &&
-                checkIcon(item.allergens, 'gluten') &&
-                '_active',
-            ]"
-          />
-          <img
-            src="@/assets/img/icons/meat.png"
-            alt="meat"
-            :class="[
-              item.allergens && checkIcon(item.allergens, 'meat') && '_active',
-            ]"
-          />
-        </div>
+        <DishAllergens
+          :allergens="item.allergens"
+          class="dish__allergens_desktop"
+        />
       </div>
+      <DishAllergens
+        :allergens="item.allergens"
+        class="dish__allergens_mobile"
+      />
     </div>
     <div class="dish__macronutrients macronutrients">
       <div class="macronutrients__item">

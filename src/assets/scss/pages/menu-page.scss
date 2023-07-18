@@ -1,19 +1,12 @@
 .menu-page {
   position: relative;
   &__day-total {
-    display: none;
     flex-direction: column;
     width: 100%;
-    max-width: 140px;
     background: #FFFFFF;
     box-shadow: 0px 16px 80px rgba(0, 117, 65, 0.07);
     border-radius: 20px;
     padding: 24px;
-    position: fixed;
-    top: 50%; 
-    right: 20px;
-    transform: translateY(-50%);
-    z-index: 9;
     .day-total-card__title{ 
       margin-bottom: 16px;
       font-family: 'Nunito Sans', sans-serif;
@@ -39,15 +32,22 @@
       display: flex;
     }
   }
+  &__client-name {
+    @include adaptiv-value(font-size, 45, 32, 1);
+    line-height: 100%;
+    @include adaptiv-value(margin-bottom, 50, 32, 1);
+    @media (max-width: $md3 + px) {
+      opacity: 0.8;
+    }
+  }
   &__title{
-    @include adaptiv-value(font-size, 45, 34, 1);
+    @include adaptiv-value(font-size, 32, 20, 1);
     line-height: 100%;
     color: #383836;
-    opacity: 0.8;
-    @include adaptiv-value(margin-bottom, 18, 11, 1);
+    @include adaptiv-value(margin-bottom, 32, 20, 1);
     text-align: center;
     @media (max-width: $md3 + px) {
-      font-weight: 500;
+      opacity: 0.8;
     }
   }
   &__subtitle{
@@ -170,25 +170,34 @@
     display: flex;
     flex-direction: column;
     column-gap: 8px;
-    & > ul {
+    .days-list {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0 10px;
+      @include adaptiv-value(column-gap, 24, 8, 1);
       li {
         &:not(.total-price) {
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
-          @include adaptiv-value(width, 60, 40, 1);
-          @include adaptiv-value(height, 60, 40, 1);
+          row-gap: 4px;
+          @include adaptiv-value(width, 60, 48, 1);
+          @include adaptiv-value(height, 60, 48, 1);
           border-radius: 50%;
           border: 1px solid #1E9F38;
           color: #1E9F38;
           transition: all 0.3s ease 0s;
           cursor: pointer;
           span {
-            @include adaptiv-value(font-size, 14, 12, 1);
+            &:nth-child(1) {
+              @include adaptiv-value(font-size, 14, 12, 1);
+              font-weight: 600;
+            }
+            &:nth-child(2) {
+              @include adaptiv-value(font-size, 13, 12, 1);
+            }
+            
           }
           &.disabled {
             background: #ccc;
@@ -247,14 +256,6 @@
           &._total {
             display: none;
           }
-          span {
-            &:nth-child(2) {
-              order: 1;
-            }
-            &:nth-child(1) {
-              order: 2;
-            }
-          }
         } 
       }
     }
@@ -263,9 +264,16 @@
       top: 0;
       background: #fff;
       width: 100%;
-      padding: 12px 0;
+      padding: 6px 0;
       z-index: 9;
       border-bottom: 1px solid #BBE2C3;
+      .days-list {
+        @include adaptiv-value(column-gap, 16, 8, 1);
+        li {
+          @include adaptiv-value(width, 48, 40, 1);
+          @include adaptiv-value(height, 48, 40, 1);
+        }
+      }
       .total-price {
         @media (min-width: $md3 + px) {
           display: inline-block;
@@ -360,7 +368,7 @@
     background-position: center center !important;
     background-size: contain !important;
     margin-bottom: 25px;
-    overflow: hidden;
+    // overflow: hidden;
     &_active {
       background: none !important;
     }
@@ -396,33 +404,103 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    row-gap: 16px;
+    // overflow: hidden;
     &_active {
       @media (max-width: $md3 + px) {
         opacity: 1;
       }
     }
   }
-  &__desc {
+  &__desc {   
     max-width: 206px;
     font-size: 13px;
     line-height: 16px;
-    margin-bottom: 16px;
     color: #383836;
     opacity: 0.8;
     text-align: center;
   }
-  &__icons {
+  &__allergens {
     display: flex;
     gap: 0 8px;
     align-items: center;
-    img {
-      max-width: 25px;
-      opacity: 0.3;
-      &._active {
-        opacity: 1;
+    &_desktop {
+      @media (max-width: $md3 + px) {
+        display: none;
       }
     }
+    &_mobile {
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      @media (min-width: $md3 + px) {
+        display: none;
+      }
+    }
+  }
+  &__allergen-icon { 
+    @media (max-width: $md3 + px) {
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+    }
+    img {
+      width: 20px;
+      @media (min-width: $md3 + px) {
+        width: 24px;
+      }
+    }
+    &_dairy {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #60acdc;
+      }
+    }
+    &_meat {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #f0749c;
+      }
+    }
+    &_gluten {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #ffbc64;
+      }
+    }
+    &_mushrooms {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #a06c54;
+      }
+    }
+    &_nuts {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #a06c54;
+      }
+    }
+    &_onion {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #209c3c;
+      }
+    }
+    &_seafood {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #08344c;
+      }
+    }
+    &_spicy {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #f0746c;
+      }
+    }
+    &_pepper {
+      @media (max-width: $md3 + px) {
+        border: 1px solid #f0746c;
+      }
+    }
+    
   }
   &__counter {
     height: 30px;
@@ -493,7 +571,10 @@
   display: none;
   &._show {
     @media (max-width: $md2 + px) {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      column-gap: 16px;
     }
     position: fixed;
     bottom: 0;
@@ -522,12 +603,20 @@
       font-size: 13px;
       line-height: 100%;
       span {
+        &:nth-child(1) {
+          font-weight: 300;
+           .fixed-sidebar & {
+            font-weight: 600;
+            color: #1E9F38;
+          }
+         
+        } 
         &:nth-child(2) {
           font-weight: 300;
-        } 
-        &:nth-child(1) {
-          font-weight: 600;
-          color: #1E9F38;
+           .menu-page__days & {
+            font-weight: 600;
+            color: #1E9F38;
+          }
         }
       }
       &._total {

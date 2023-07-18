@@ -1,6 +1,7 @@
 <script setup>
 import DaysListComponent from "@/components/DaysListComponent.vue";
 import DayTotalPanel from "@/components/DayTotalPanel.vue";
+import OrderDeadlinePanel from "@/components/OrderDeadlinePanel.vue";
 import DishSlider from "@/components/DishSliderComponent.vue";
 import Order from "@/components/OrderComponent.vue";
 
@@ -28,6 +29,7 @@ const { macronutrientsDishesByDays, totalMacronutrientByDays } =
 const apiUrl = import.meta.env.VITE_APP_API_URL;
 const menuAlias = import.meta.env.VITE_MENU_ALIAS;
 
+const responceData = ref({});
 const menuPage = ref(true);
 const days = DAYS;
 const currentDayName = ref("");
@@ -41,6 +43,10 @@ const getCurrentDayName = computed(() => {
   return days.find((day) => {
     return day.name === currentDayName.value;
   });
+});
+
+const getClientName = computed(() => {
+  return responceData.value?.client?.full_name;
 });
 
 const getTotalDayPrice = computed(() => {
@@ -279,7 +285,8 @@ onMounted(async () => {
     );
     const { data: programData } = response;
     menuItems.value = setProgram(programData);
-    // console.log(programData, "programData");
+    responceData.value = programData;
+    console.log(programData, "programData");
   } catch (e) {
     console.log(e);
   }
@@ -287,9 +294,13 @@ onMounted(async () => {
 
 function handleScroll() {
   window.addEventListener("scroll", () => {
-    if (!menuPage.value) return;
+    const menuDays = document.getElementById("menu-days");
     const buttonPosition = orderButton.value.getBoundingClientRect().top - 50;
-    if (buttonPosition < pageHeight.value) {
+    const stickyPosition = menuDays.getBoundingClientRect().top - 64;
+
+    if (!menuPage.value || !document.body.contains(menuDays)) return;
+
+    if (buttonPosition < pageHeight.value || stickyPosition > -64) {
       fixedPanel.value.classList.remove("_show");
     } else {
       fixedPanel.value.classList.add("_show");
@@ -315,6 +326,7 @@ window.onresize = () => handleResize();
           :total-price="totalPrice"
           @update-day="currentDayName = $event"
           :total-macronutrient-by-days="totalMacronutrientByDays"
+          :client-name="getClientName"
         />
       </div>
       <div v-if="menuItems[currentDayName]" class="menu-page__wrap">
@@ -363,16 +375,22 @@ window.onresize = () => handleResize();
           />
         </div>
       </div>
-      <DayTotalPanel
-        v-if="route.params.userId && getCurrentDayName?.short"
-        class="menu-page__day-total"
-        :total-price="getTotalDayPrice"
-        :current-day="getCurrentDayName"
-        :total-macronutrients="totalMacronutrientByDays"
-      />
+      <div class="fixed-sidebar fixed-sidebar_right" v-if="route.params.userId">
+        <OrderDeadlinePanel />
+        <DayTotalPanel
+          v-if="getCurrentDayName?.short"
+          class="menu-page__day-total"
+          :total-price="getTotalDayPrice"
+          :current-day="getCurrentDayName"
+          :total-macronutrients="totalMacronutrientByDays"
+        />
+      </div>
     </div>
-    <div class="fixed-total-panel" v-show="totalPrice" ref="fixedPanel">
-      Total: € {{ Math.floor(totalPrice * 100) / 100 }}
+    <div class="fixed-total-panel" ref="fixedPanel">
+      <OrderDeadlinePanel />
+      <div v-show="totalPrice">
+        Total: € {{ Math.floor(totalPrice * 100) / 100 }}
+      </div>
     </div>
     <div
       v-show="menuItems[currentDayName]"

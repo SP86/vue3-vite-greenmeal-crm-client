@@ -283,6 +283,21 @@ export default function usePriceCalculation() {
     dishesArray.value = dishes;
   };
 
+  const getDishPriceByType = (type) => {
+    switch (type) {
+      case "breakfast":
+        return prices.value.breakfast_1;
+      case "main":
+        return prices.value.main_1;
+      case "vegetarian":
+        return prices.value.vegetarian_1;
+      case "side":
+        return prices.value.side;
+      default:
+        return null;
+    }
+  };
+
   onMounted(async () => {
     if (route.params.userId) {
       try {
@@ -307,5 +322,6 @@ export default function usePriceCalculation() {
     setDishesArray,
     totalPriceByDays,
     activeOrderBtn,
+    getDishPriceByType,
   };
 }

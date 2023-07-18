@@ -49,24 +49,23 @@ const totalСarbohydratesByDay = computed(() => {
     </div>
     <ul>
       <li>
-        <span>{{ totalCaloriesByDay }}</span>
         <span>kcal</span>
+        <span>{{ totalCaloriesByDay }}</span>
       </li>
       <li>
-        <span>{{ totalProteinsByDay }}</span>
         <span>prots</span>
+        <span>{{ totalProteinsByDay }}</span>
       </li>
       <li>
-        <span>{{ totalFatsByDay }}</span>
         <span>fats</span>
+        <span>{{ totalFatsByDay }}</span>
       </li>
       <li>
-        <span>{{ totalСarbohydratesByDay }} </span>
         <span>carbs</span>
+        <span>{{ totalСarbohydratesByDay }} </span>
       </li>
       <li class="_total">
-        <span>{{ totalPrice }}</span>
-        <i>€</i>
+        <span>€ {{ totalPrice }}</span>
       </li>
     </ul>
   </div>

@@ -3,60 +3,40 @@ import moment from "moment";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import DayTotalPanel from "@/components/DayTotalPanel.vue";
+import OrderDeadlinePanel from "@/components/OrderDeadlinePanel.vue";
+import useDatesCalculation from "@/composable/datesCalculation";
 
 const route = useRoute();
 const currentDayName = ref("");
+
+const { currentIsoWeekday, isOwer11Pm } = useDatesCalculation();
 
 const props = defineProps({
   days: { type: Object, required: true },
   errorDays: { type: Object, required: false },
   totalPrice: { type: [Number, String], required: false },
   totalMacronutrientByDays: { type: Object, required: true },
+  clientName: { type: [String, null], required: false },
 });
 
 const emits = defineEmits(["updateDay"]);
-
-const isSwitchToNextDay = computed(() => {
-  // const currentTime = new Date();
-  // const currentHour = currentTime.getHours();
-
-  // return currentHour >= 11;
-
-  const currentTime = new Date();
-  const options = { timeZone: "Europe/Madrid", hour: "numeric" };
-  const formatter = new Intl.DateTimeFormat("es-ES", options);
-  const currentHour = parseInt(formatter.format(currentTime), 10);
-  console.log(currentHour);
-
-  return currentHour >= 11;
-});
 
 const isClientMenu = computed(() => {
   return route.params.userId ? true : false;
 });
 
-// const currentDay = computed(() => {
-//   let current;
-//   moment().isoWeekday() > 4
-//     ? (current = !isSwitchToNextDay.value ? 1 : 2)
-//     : (current = !isSwitchToNextDay.value
-//         ? moment().isoWeekday() + 1
-//         : moment().isoWeekday() + 2);
-//   return current;
-// });
-
 const currentDay = computed(() => {
-  let day = moment().isoWeekday();
+  let day = currentIsoWeekday.value;
   if (!isClientMenu.value) {
     return 1;
   }
 
   if (day < 4) {
-    return !isSwitchToNextDay.value ? day + 1 : day + 2;
+    return !isOwer11Pm.value ? day + 1 : day + 2;
   } else if (day === 4) {
-    return !isSwitchToNextDay.value ? day : 1;
+    return !isOwer11Pm.value ? day : 1;
   } else if (day === 7) {
-    return !isSwitchToNextDay.value ? 1 : 2;
+    return !isOwer11Pm.value ? 1 : 2;
   } else {
     return 1;
   }
@@ -102,16 +82,9 @@ onMounted(() => {
       day.show = true;
     }
 
-    // if (currentDay.value === 1) {
-    //   day.date = moment()
-    //     .isoWeekday(day.id)
-    //     .add(7, "days")
-    //     .format("YYYY-MM-DD");
-    // }
-
     if (
-      (moment().isoWeekday() === 4 && isSwitchToNextDay.value) ||
-      moment().isoWeekday() > 4
+      (currentIsoWeekday.value === 4 && isOwer11Pm.value) ||
+      currentIsoWeekday.value > 4
     ) {
       day.date = moment()
         .isoWeekday(day.id)
@@ -128,13 +101,12 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="_container">
-    <h1 class="menu-page__title">Menu</h1>
-    <div class="menu-page__date">
-      {{ moment(props.days[0].date).format("DD.MM") }} -
-      {{ moment(props.days[5].date).format("DD.MM") }}
+    <div v-if="clientName" class="menu-page__client-name">
+      Hello, {{ clientName }}
     </div>
+    <h1 class="menu-page__title">Menu</h1>
     <div id="menu-days" class="menu-page__days">
-      <ul>
+      <ul class="days-list">
         <li
           v-for="day in props.days"
           :key="day.id"
@@ -145,6 +117,7 @@ onUnmounted(() => {
           }"
           @click="changeDay(day)"
         >
+          <span>{{ moment(day.date).format("DD") }}</span>
           <span>{{ day.short }}</span>
         </li>
       </ul>
@@ -153,5 +126,6 @@ onUnmounted(() => {
         :total-macronutrients="totalMacronutrientByDays"
       />
     </div>
+    <OrderDeadlinePanel />
   </div>
 </template>

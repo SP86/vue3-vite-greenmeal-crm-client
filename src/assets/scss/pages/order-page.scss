@@ -227,8 +227,8 @@
     column-gap: 16px;
     flex: 1 1 auto;
   }
-  &__icons {
-    @extend .dish__icons;
+  &__allergens {
+    @extend .dish__allergens;
   }
   &__counter {
     @extend .dish__counter;
