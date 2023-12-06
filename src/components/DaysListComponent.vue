@@ -1,15 +1,10 @@
 <script setup>
-import moment from "moment";
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
+import moment from "moment";
 import DayTotalPanel from "@/components/DayTotalPanel.vue";
 import OrderDeadlinePanel from "@/components/OrderDeadlinePanel.vue";
 import useDatesCalculation from "@/composable/datesCalculation";
-
-const route = useRoute();
-const currentDayName = ref("");
-
-const { currentIsoWeekday, isOwer11Pm } = useDatesCalculation();
+import useGlobalFunctions from "@/composable/globalFunctions";
 
 const props = defineProps({
   days: { type: Object, required: true },
@@ -19,11 +14,11 @@ const props = defineProps({
   clientName: { type: [String, null], required: false },
 });
 
-const emits = defineEmits(["updateDay"]);
+const currentDayName = ref("");
+const { currentIsoWeekday, isOwer11Pm } = useDatesCalculation();
+const { isClientMenu } = useGlobalFunctions();
 
-const isClientMenu = computed(() => {
-  return route.params.userId ? true : false;
-});
+const emits = defineEmits(["updateDay"]);
 
 const currentDay = computed(() => {
   let day = currentIsoWeekday.value;
@@ -31,15 +26,25 @@ const currentDay = computed(() => {
     return 1;
   }
 
-  if (day < 4) {
-    return !isOwer11Pm.value ? day + 1 : day + 2;
-  } else if (day === 4) {
-    return !isOwer11Pm.value ? day : 1;
+  if (day === 4) {
+    return !isOwer11Pm.value ? day + 1 : 1;
+  } else if (day === 5 || day === 6) {
+    return 1;
   } else if (day === 7) {
     return !isOwer11Pm.value ? 1 : 2;
   } else {
-    return 1;
+    return !isOwer11Pm.value ? day + 1 : day + 2;
   }
+
+  // if (day < 4) {
+  //   return !isOwer11Pm.value ? day + 1 : day + 2;
+  // } else if (day === 4) {
+  //   return !isOwer11Pm.value ? day + 1 : 1;
+  // } else if (day === 7) {
+  //   return !isOwer11Pm.value ? 1 : 2;
+  // } else {
+  //   return 1;
+  // }
 });
 
 const dayErrorsArray = computed(() => {

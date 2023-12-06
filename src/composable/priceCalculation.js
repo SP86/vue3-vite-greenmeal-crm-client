@@ -1,16 +1,16 @@
-import { ref, computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { ref, computed } from "vue";
 import { DISH_PRICES, DAYS } from "../constants.js";
-import axios from "axios";
+import { usePricesStore } from "@/stores/prices";
 
 export default function usePriceCalculation() {
-  const route = useRoute();
-  const baseUrl = import.meta.env.VITE_APP_BASE_URL;
-
+  const pricesStore = usePricesStore();
   const days = DAYS;
   const errorDays = ref(DAYS);
-  const prices = ref(DISH_PRICES);
   const dishesArray = ref([]);
+
+  const prices = computed(() => {
+    return pricesStore.prices?.breakfast_1 ? pricesStore.prices : DISH_PRICES;
+  });
 
   const totalPriceByDays = computed(() => {
     let prices = {};
@@ -114,6 +114,7 @@ export default function usePriceCalculation() {
 
     let totalCost = 0;
     if (mainDishes.length) {
+      console.log(prices.value, "prices");
       mainDishes.forEach((dish, index) => {
         let cost = 0;
         if (index === 0) {
@@ -139,11 +140,11 @@ export default function usePriceCalculation() {
         totalCost += cost * dish.quantity;
       });
 
-      sides.forEach((dish) => {
-        let cost = prices.value?.side || 0;
-        dish.price = cost;
-        totalCost += cost * dish.quantity;
-      });
+      // sides.forEach((dish) => {
+      //   let cost = prices.value?.side || 0;
+      //   dish.price = cost;
+      //   totalCost += cost * dish.quantity;
+      // });
     } else if (vegetarians.length) {
       vegetarians.forEach((dish, index) => {
         let cost =
@@ -164,11 +165,11 @@ export default function usePriceCalculation() {
         totalCost += cost * dish.quantity;
       });
 
-      sides.forEach((dish) => {
-        let cost = prices.value?.side || 0;
-        dish.price = cost;
-        totalCost += cost * dish.quantity;
-      });
+      // sides.forEach((dish) => {
+      //   let cost = prices.value?.side || 0;
+      //   dish.price = cost;
+      //   totalCost += cost * dish.quantity;
+      // });
     } else if (breakfasts.length) {
       breakfasts.forEach((dish, index) => {
         let cost =
@@ -183,16 +184,25 @@ export default function usePriceCalculation() {
         totalCost += cost;
       });
 
-      sides.forEach((dish) => {
-        let cost = prices.value?.side || 0;
+      // sides.forEach((dish) => {
+      //   let cost = prices.value?.side || 0;
+      //   dish.price = cost;
+      //   totalCost += cost * dish.quantity;
+      // });
+    }
+
+    if (sides.length) {
+      sides.forEach((dish, index) => {
+        let cost =
+          index === 0
+            ? prices.value?.side_1
+              ? prices.value.side_1
+              : 0
+            : prices.value?.side_1
+            ? prices.value.side_2
+            : 0;
         dish.price = cost;
-        totalCost += cost * dish.quantity;
-      });
-    } else {
-      sides.forEach((dish) => {
-        let cost = prices.value?.side || 0;
-        dish.price = cost;
-        totalCost += cost * dish.quantity;
+        totalCost += cost;
       });
     }
 
@@ -223,7 +233,10 @@ export default function usePriceCalculation() {
   const setDishTypeByMealType = (dishMeal) => {
     if (dishMeal > 0 && dishMeal <= 5) {
       return "breakfast";
-    } else if (dishMeal > 5 && dishMeal <= 10) {
+    } else if (
+      (dishMeal > 5 && dishMeal <= 10) ||
+      (dishMeal > 20 && dishMeal <= 25)
+    ) {
       return "main";
     } else if (dishMeal > 10 && dishMeal <= 15) {
       return "side";
@@ -235,7 +248,7 @@ export default function usePriceCalculation() {
   const createDishesArrayByDays = (dishesFromMenu) => {
     let dishes = [];
     days.forEach((day) => {
-      let groups = ["breakfast", "dinner", "sides", "four"];
+      let groups = ["breakfast", "dinner", "plain", "sides", "four"];
       if (dishesFromMenu[day.name]) {
         let dayDishesArray = [];
 
@@ -283,7 +296,7 @@ export default function usePriceCalculation() {
     dishesArray.value = dishes;
   };
 
-  const getDishPriceByType = (type) => {
+  const getStartDishPriceByType = (type) => {
     switch (type) {
       case "breakfast":
         return prices.value.breakfast_1;
@@ -292,26 +305,11 @@ export default function usePriceCalculation() {
       case "vegetarian":
         return prices.value.vegetarian_1;
       case "side":
-        return prices.value.side;
+        return prices.value.side_1;
       default:
         return null;
     }
   };
-
-  onMounted(async () => {
-    if (route.params.userId) {
-      try {
-        const { data: response } = await axios.get(
-          `${baseUrl}api/get-client-prices/${route.params.userId}`
-        );
-        const { data: pricesData } = response;
-        prices.value = pricesData;
-        // console.log(prices.value, "prices");
-      } catch (e) {
-        console.log(e);
-      }
-    }
-  });
 
   return {
     errorDays,
@@ -322,6 +320,6 @@ export default function usePriceCalculation() {
     setDishesArray,
     totalPriceByDays,
     activeOrderBtn,
-    getDishPriceByType,
+    getStartDishPriceByType,
   };
 }

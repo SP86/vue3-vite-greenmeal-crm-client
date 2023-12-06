@@ -5,15 +5,18 @@ import OrderDeadlinePanel from "@/components/OrderDeadlinePanel.vue";
 import DishSlider from "@/components/DishSliderComponent.vue";
 import Order from "@/components/OrderComponent.vue";
 
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, provide } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
+import { usePricesStore } from "@/stores/prices";
 
 import usePriceCalculation from "@/composable/priceCalculation";
 import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
-import { DAYS } from "../constants.js";
+import { DAYS, TEST_PROGRAM_DATA } from "../constants.js";
 
 const route = useRoute();
+const pricesStore = usePricesStore();
+
 const {
   totalPrice,
   totalPriceByDays,
@@ -79,6 +82,7 @@ const setProgram = (program) => {
         obj[item.menuTitle] = {
           breakfast: item.dishes.breakfast,
           dinner: item.dishes.dinner,
+          plain: item.dishes.plain,
           sides: item.dishes.sides,
           four: item.dishes.four,
         };
@@ -96,6 +100,7 @@ const setDishesByDishMeal = (menuDishes) => {
   let dinner = [];
   let sides = [];
   let four = [];
+  let plain = [];
   menuDishes.forEach((menuDishesItem) => {
     let dishItem = {
       id: menuDishesItem.dish.id,
@@ -122,8 +127,13 @@ const setDishesByDishMeal = (menuDishes) => {
       menuDishesItem.dish_meal <= 15
     ) {
       sides.push(dishItem);
-    } else if (menuDishesItem.dish_meal > 15) {
+    } else if (
+      menuDishesItem.dish_meal > 15 &&
+      menuDishesItem.dish_meal <= 20
+    ) {
       four.push(dishItem);
+    } else {
+      plain.push(dishItem);
     }
   });
 
@@ -132,6 +142,7 @@ const setDishesByDishMeal = (menuDishes) => {
     dinner: dinner,
     sides: sides,
     four: four,
+    plain: plain,
   };
 
   return dishesByType;
@@ -142,6 +153,7 @@ const setDishesAfterChanges = (dishes) => {
   let dinner = [];
   let sides = [];
   let four = [];
+  let plain = [];
   dishes.forEach((newDish) => {
     let dishItem = {
       id: newDish.dish_id,
@@ -165,14 +177,17 @@ const setDishesAfterChanges = (dishes) => {
       dinner.push(dishItem);
     } else if (newDish.dish_meal > 10 && newDish.dish_meal <= 15) {
       sides.push(dishItem);
-    } else if (newDish.dish_meal > 15) {
+    } else if (newDish.dish_meal > 15 && newDish.dish_meal <= 20) {
       four.push(dishItem);
+    } else {
+      plain.push(dishItem);
     }
   });
 
   const dishesByType = {
     breakfast: breakfast,
     dinner: dinner,
+    plain: plain,
     sides: sides,
     four: four,
   };
@@ -183,7 +198,7 @@ const setDishesAfterChanges = (dishes) => {
 const showOrderPage = () => {
   let dishes = [];
   days.forEach((day) => {
-    let groups = ["breakfast", "dinner", "sides", "four"];
+    let groups = ["breakfast", "dinner", "plain", "sides", "four"];
     if (menuItems.value[day.name]) {
       let dayDishesArray = [];
 
@@ -252,7 +267,7 @@ const showMenuPage = async (dishesFromOrder) => {
   );
 
   days.forEach((day) => {
-    const dishTypes = ["breakfast", "dinner", "four", "sides"];
+    const dishTypes = ["breakfast", "dinner", "plain", "sides", "four"];
     dishTypes.forEach((type) => {
       changeDishesCountInMenu(day.name, menuFromOrder, type);
     });
@@ -278,12 +293,20 @@ const pageHeight = computed(() => {
   return window.innerHeight;
 });
 
+provide("totalPriceByDays", totalPriceByDays);
+provide("currentDay", getCurrentDayName);
+
 onMounted(async () => {
+  if (route.params.userId) {
+    // await pricesStore.fetchPrices(route.params.userId);
+  }
+
   try {
-    const { data: response } = await axios.get(
-      route.params.userId ? apiUrl + route.params.userId : apiUrl + menuAlias
-    );
-    const { data: programData } = response;
+    // const { data: response } = await axios.get(
+    //   route.params.userId ? apiUrl + route.params.userId : apiUrl + menuAlias
+    // );
+    // const { data: programData } = response;
+    const programData = TEST_PROGRAM_DATA;
     menuItems.value = setProgram(programData);
     responceData.value = programData;
     console.log(programData, "programData");
@@ -343,7 +366,10 @@ window.onresize = () => handleResize();
         </div>
 
         <div
-          v-if="menuItems[currentDayName].dinner.length"
+          v-if="
+            menuItems[currentDayName]?.dinner &&
+            menuItems[currentDayName].dinner.length
+          "
           class="menu-page__body _container"
         >
           <h2 class="menu-page__subtitle">Main dishes</h2>
@@ -354,7 +380,24 @@ window.onresize = () => handleResize();
         </div>
 
         <div
-          v-if="menuItems[currentDayName].sides.length"
+          v-if="
+            menuItems[currentDayName]?.plain &&
+            menuItems[currentDayName].plain.length
+          "
+          class="menu-page__body _container"
+        >
+          <h2 class="menu-page__subtitle">Plain meals</h2>
+          <DishSlider
+            :dishes="menuItems[currentDayName].plain"
+            :key="'plain_' + currentDayName"
+          />
+        </div>
+
+        <div
+          v-if="
+            menuItems[currentDayName]?.sides &&
+            menuItems[currentDayName].sides.length
+          "
           class="menu-page__body _container"
         >
           <h2 class="menu-page__subtitle">Sides</h2>
@@ -365,7 +408,10 @@ window.onresize = () => handleResize();
         </div>
 
         <div
-          v-if="menuItems[currentDayName].four.length"
+          v-if="
+            menuItems[currentDayName]?.four &&
+            menuItems[currentDayName].four.length
+          "
           class="menu-page__body _container"
         >
           <h2 class="menu-page__subtitle">Vegetarian dishes</h2>

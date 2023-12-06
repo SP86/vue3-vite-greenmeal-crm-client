@@ -3,7 +3,7 @@ import DishCount from "@/components/DishCountComponent.vue";
 import Modal from "@/components/ModalComponent.vue";
 import ChangeDay from "@/components/ChangeDayButtonComponent.vue";
 
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import { useRoute } from "vue-router";
 import usePriceCalculation from "@/composable/priceCalculation";
@@ -79,8 +79,6 @@ const emits = defineEmits(["orderChange"]);
 const saveOrder = async () => {
   disabledBtn.value = !disabledBtn.value;
 
-  console.log(items.value, "items.value");
-
   let orderResponse;
   try {
     const { data: response } = await axios.post(
@@ -97,7 +95,7 @@ const saveOrder = async () => {
     console.log(e);
   }
 
-  console.log(orderResponse, "orderResponse");
+  // console.log(orderResponse, "orderResponse");
   if (orderResponse?.id) {
     orderId.value = orderResponse.id;
     pdfLink.value = orderResponse.pdf_link;
@@ -234,13 +232,28 @@ onMounted(async () => {
   await dishesBySaturday.forEach((item) => {
     item.previous_day = true;
   });
+
+  window.addEventListener("beforeunload", handleClose);
 });
+
+onUnmounted(() => {
+  window.removeEventListener("beforeunload", handleClose);
+});
+
+function handleClose(event) {
+  if (!orderComplete.value) {
+    event.preventDefault();
+    return false;
+  }
+}
 </script>
 <template>
   <div class="order-page">
     <div class="order-page__header" v-show="!orderComplete">
       <div class="_container">
-        <h1 class="order-page__title">Your order</h1>
+        <h1 class="order-page__title">
+          Please review your order and scroll down to confirm it
+        </h1>
       </div>
     </div>
     <div

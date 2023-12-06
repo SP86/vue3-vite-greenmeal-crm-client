@@ -349,8 +349,8 @@
     padding: 25px 12px;
   }
   &__title {
-    font-weight: 500;
-    font-size: 15px;
+    font-weight: 400;
+    font-size: 16px; 
     line-height: 18px;
     color: #383836;
     text-align: center;
@@ -533,6 +533,18 @@
       justify-content: center;
     }
   }
+  &__price {
+    font-size: 13px;
+    line-height: 100%;
+    font-weight: 600;
+    color: #1E9F38;
+    .line-through {
+      text-decoration: line-through;
+      color: #999999;
+      font-size: 12px;
+      font-weight: 400;
+    }
+  }
   &__macronutrients {
     margin-bottom: 24px;
   }
@@ -542,6 +554,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    column-gap: 20px;
   }
   &__info-btn {
     display: block;
@@ -608,6 +621,7 @@
            .fixed-sidebar & {
             font-weight: 600;
             color: #1E9F38;
+            width: 32px;
           }
          
         } 

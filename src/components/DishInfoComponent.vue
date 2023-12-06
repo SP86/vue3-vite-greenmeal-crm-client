@@ -1,14 +1,22 @@
 <script setup>
+import { inject } from "vue";
 import DishCount from "@/components/DishCountComponent.vue";
 import DishAllergens from "@/components/DishAllergens.vue";
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
+import usePriceCalculation from "@/composable/priceCalculation";
 import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
+import useGlobalFunctions from "@/composable/globalFunctions";
+
+const totalPrices = inject("totalPriceByDays");
+const currentDay = inject("currentDay");
 
 const props = defineProps({
   item: { type: Object, required: true },
 });
 
+const { getStartDishPriceByType, prices } = usePriceCalculation();
+const { isClientMenu } = useGlobalFunctions();
 const { getCountOfMacronutrient } = useMacronutrientsCalculation();
 
 const route = useRoute();
@@ -17,6 +25,155 @@ const item = ref(props.item);
 const baseUrl = import.meta.env.VITE_APP_BASE_URL;
 const checkPhoto = false;
 const isOpen = ref(false);
+
+const totalPricesByDay = computed(() => {
+  return totalPrices.value[currentDay.value.title];
+});
+
+const getPrices = computed(() => {
+  let pricesObj = {
+    oldPrice: 0,
+    newPrice: 0,
+  };
+  const dishItemType = props.item.dish_type;
+  if (!totalPricesByDay.value.total) {
+    pricesObj = {
+      oldPrice: getStartDishPriceByType(dishItemType),
+      newPrice: getStartDishPriceByType(dishItemType),
+    };
+  } else {
+    if (totalPricesByDay.value.mainCount) {
+      if (dishItemType === "main") {
+        if (totalPricesByDay.value.mainCount === 1) {
+          pricesObj = {
+            oldPrice: prices.value.main_1,
+            newPrice: prices.value.main_2,
+          };
+        } else {
+          pricesObj = {
+            oldPrice: prices.value.main_2,
+            newPrice: prices.value.main_3,
+          };
+        }
+      }
+
+      if (dishItemType === "vegetarian") {
+        pricesObj = {
+          oldPrice: prices.value.vegetarian_1,
+          newPrice: prices.value.vegetarian_2,
+        };
+      }
+
+      if (dishItemType === "breakfast") {
+        pricesObj = {
+          oldPrice: prices.value.breakfast_1,
+          newPrice: prices.value.breakfast_2,
+        };
+      }
+
+      if (dishItemType === "side") {
+        pricesObj = {
+          oldPrice: prices.value.side_1,
+          newPrice: prices.value.side_1,
+        };
+      }
+    } else if (totalPricesByDay.value.vegetariansCount) {
+      if (dishItemType === "main") {
+        pricesObj = {
+          oldPrice: prices.value.main_1,
+          newPrice: prices.value.main_1,
+        };
+      }
+
+      if (dishItemType === "vegetarian") {
+        pricesObj = {
+          oldPrice: prices.value.vegetarian_1,
+          newPrice: prices.value.vegetarian_2,
+        };
+      }
+
+      if (dishItemType === "breakfast") {
+        pricesObj = {
+          oldPrice: prices.value.breakfast_1,
+          newPrice: prices.value.breakfast_2,
+        };
+      }
+
+      if (dishItemType === "side") {
+        pricesObj = {
+          oldPrice: prices.value.side_1,
+          newPrice: prices.value.side_1,
+        };
+      }
+    } else if (totalPricesByDay.value.breakfastsCount) {
+      if (dishItemType === "main") {
+        pricesObj = {
+          oldPrice: prices.value.main_1,
+          newPrice: prices.value.main_1,
+        };
+      }
+
+      if (dishItemType === "vegetarian") {
+        pricesObj = {
+          oldPrice: prices.value.vegetarian_1,
+          newPrice: prices.value.vegetarian_1,
+        };
+      }
+
+      if (dishItemType === "breakfast") {
+        pricesObj = {
+          oldPrice: prices.value.breakfast_1,
+          newPrice: prices.value.breakfast_2,
+        };
+      }
+      if (dishItemType === "side") {
+        pricesObj = {
+          oldPrice: prices.value.side_1,
+          newPrice: prices.value.side_1,
+        };
+      }
+    } else if (totalPricesByDay.value.sidesCount) {
+      if (dishItemType === "main") {
+        pricesObj = {
+          oldPrice: prices.value.main_1,
+          newPrice: prices.value.main_1,
+        };
+      }
+
+      if (dishItemType === "vegetarian") {
+        pricesObj = {
+          oldPrice: prices.value.vegetarian_1,
+          newPrice: prices.value.vegetarian_1,
+        };
+      }
+
+      if (dishItemType === "breakfast") {
+        pricesObj = {
+          oldPrice: prices.value.breakfast_1,
+          newPrice: prices.value.breakfast_1,
+        };
+      }
+
+      if (dishItemType === "side") {
+        pricesObj = {
+          oldPrice: prices.value.side_1,
+          newPrice: prices.value.side_2,
+        };
+      }
+    }
+
+    if (totalPricesByDay.value.sidesCount) {
+      if (dishItemType === "side") {
+        pricesObj = {
+          oldPrice: prices.value.side_1,
+          newPrice: prices.value.side_2,
+        };
+      }
+    }
+  }
+
+  return pricesObj;
+});
 
 const getPhoto = (photo) => {
   if (photo === null || photo === "null") {
@@ -62,7 +219,7 @@ watch(isOpen, async () => {
 </script>
 <template>
   <div>
-    <div class="dish__title">{{ item.name }}</div>
+    <div class="dish__title" :data-dish-id="item.id">{{ item.name }}</div>
     <div
       :style="'background: url(' + getPhoto(item.photos) + ')'"
       class="dish__body"
@@ -116,6 +273,17 @@ watch(isOpen, async () => {
     </div>
     <div class="dish__actions">
       <DishCount v-if="route.params.userId" v-model="item.count" />
+      <div v-if="isClientMenu" class="dish__price">
+        <div
+          v-if="
+            !totalPricesByDay.total || getPrices.newPrice !== getPrices.oldPrice
+          "
+          :class="{ 'line-through': totalPricesByDay.total }"
+        >
+          € {{ getPrices.oldPrice }}
+        </div>
+        <div v-if="totalPricesByDay.total">€ {{ getPrices.newPrice }}</div>
+      </div>
       <div class="dish__info-btn" @click="isOpen = !isOpen">
         <img src="@/assets/img/icons/info.svg" alt="info" />
       </div>
