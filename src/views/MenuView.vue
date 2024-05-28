@@ -4,18 +4,23 @@ import DayTotalPanel from "@/components/DayTotalPanel.vue";
 import OrderDeadlinePanel from "@/components/OrderDeadlinePanel.vue";
 import DishSlider from "@/components/DishSliderComponent.vue";
 import Order from "@/components/OrderComponent.vue";
+import Popup from "@/components/PopupComponent.vue";
+import useGlobalFunctions from "@/composable/globalFunctions";
 
-import { ref, computed, watch, onMounted, provide } from "vue";
+import { ref, computed, watch, onMounted, provide, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
 import { usePricesStore } from "@/stores/prices";
+import { useOrderStore } from "@/stores/order";
 
 import usePriceCalculation from "@/composable/priceCalculation";
 import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
 import { DAYS, TEST_PROGRAM_DATA } from "../constants.js";
+const { isMenuOff } = useGlobalFunctions();
 
 const route = useRoute();
 const pricesStore = usePricesStore();
+const orderStore = useOrderStore();
 
 const {
   totalPrice,
@@ -38,6 +43,7 @@ const days = DAYS;
 const currentDayName = ref("");
 const menuItems = ref({});
 const orderItems = ref([]);
+const isShowPopup = ref(false);
 
 const fixedPanel = ref(null);
 const orderButton = ref(null);
@@ -117,23 +123,24 @@ const setDishesByDishMeal = (menuDishes) => {
       dish_count: menuDishesItem.dish_count,
       menu_dish_id: menuDishesItem.id,
       ingredients_description: menuDishesItem.dish.ingredients_description,
+      label: menuDishesItem.dish.label,
     };
-    if (menuDishesItem.dish_meal > 0 && menuDishesItem.dish_meal <= 5) {
+    if (menuDishesItem.dish_meal > 0 && menuDishesItem.dish_meal <= 9) {
       breakfast.push(dishItem);
-    } else if (menuDishesItem.dish_meal > 5 && menuDishesItem.dish_meal <= 10) {
+    } else if (menuDishesItem.dish_meal > 9 && menuDishesItem.dish_meal <= 19) {
       dinner.push(dishItem);
     } else if (
-      menuDishesItem.dish_meal > 10 &&
-      menuDishesItem.dish_meal <= 15
+      menuDishesItem.dish_meal > 19 &&
+      menuDishesItem.dish_meal <= 29
+    ) {
+      plain.push(dishItem);
+    } else if (
+      menuDishesItem.dish_meal > 29 &&
+      menuDishesItem.dish_meal <= 39
     ) {
       sides.push(dishItem);
-    } else if (
-      menuDishesItem.dish_meal > 15 &&
-      menuDishesItem.dish_meal <= 20
-    ) {
+    } else if (menuDishesItem.dish_meal > 39) {
       four.push(dishItem);
-    } else {
-      plain.push(dishItem);
     }
   });
 
@@ -170,17 +177,19 @@ const setDishesAfterChanges = (dishes) => {
       dish_count: newDish.dish_count,
       menu_dish_id: newDish.menu_dish_id,
       ingredients_description: newDish.ingredients_description,
+      label: newDish.label,
     };
-    if (newDish.dish_meal > 0 && newDish.dish_meal <= 5) {
+
+    if (newDish.dish_meal > 0 && newDish.dish_meal <= 9) {
       breakfast.push(dishItem);
-    } else if (newDish.dish_meal > 5 && newDish.dish_meal <= 10) {
+    } else if (newDish.dish_meal > 9 && newDish.dish_meal <= 19) {
       dinner.push(dishItem);
-    } else if (newDish.dish_meal > 10 && newDish.dish_meal <= 15) {
-      sides.push(dishItem);
-    } else if (newDish.dish_meal > 15 && newDish.dish_meal <= 20) {
-      four.push(dishItem);
-    } else {
+    } else if (newDish.dish_meal > 19 && newDish.dish_meal <= 29) {
       plain.push(dishItem);
+    } else if (newDish.dish_meal > 29 && newDish.dish_meal <= 39) {
+      sides.push(dishItem);
+    } else if (newDish.dish_meal > 39) {
+      four.push(dishItem);
     }
   });
 
@@ -221,6 +230,7 @@ const showOrderPage = () => {
                 menu_dish_id: item.menu_dish_id,
                 allergens: item.allergens,
                 ingredients_description: item.ingredients_description,
+                label: item.label,
                 next_day: false,
                 previous_day: false,
               };
@@ -242,6 +252,7 @@ const showOrderPage = () => {
 
   orderItems.value = dishes;
   menuPage.value = !menuPage.value;
+  orderStore.setItemsToOrder(dishes);
   window.scrollTo(0, 0);
 };
 
@@ -273,7 +284,7 @@ const showMenuPage = async (dishesFromOrder) => {
     });
   });
 
-  menuPage.value = !menuPage.value;
+  menuPage.value = true;
   window.scrollTo(0, 0);
 };
 
@@ -297,22 +308,30 @@ provide("totalPriceByDays", totalPriceByDays);
 provide("currentDay", getCurrentDayName);
 
 onMounted(async () => {
-  if (route.params.userId) {
-    // await pricesStore.fetchPrices(route.params.userId);
-  }
+  // if (route.params.userId) {
+  //   await pricesStore.fetchPrices(route.params.userId);
+  // }
 
   try {
     // const { data: response } = await axios.get(
     //   route.params.userId ? apiUrl + route.params.userId : apiUrl + menuAlias
     // );
     // const { data: programData } = response;
+
     const programData = TEST_PROGRAM_DATA;
+
     menuItems.value = setProgram(programData);
     responceData.value = programData;
-    console.log(programData, "programData");
+    // console.log(programData, "programData");
   } catch (e) {
     console.log(e);
   }
+
+  await nextTick(() => {
+    showMenuPage(orderStore.orderItems);
+  });
+
+  orderItems.value = orderStore.orderItems;
 });
 
 function handleScroll() {
@@ -340,6 +359,7 @@ window.onresize = () => handleResize();
 </script>
 
 <template>
+  {{ orderStore.orderItems }}
   <div v-if="menuPage">
     <div class="menu-page">
       <div class="menu-page__header" id="menu-header">
@@ -422,7 +442,7 @@ window.onresize = () => handleResize();
         </div>
       </div>
       <div class="fixed-sidebar fixed-sidebar_right" v-if="route.params.userId">
-        <OrderDeadlinePanel />
+        <OrderDeadlinePanel v-show="!isMenuOff" />
         <DayTotalPanel
           v-if="getCurrentDayName?.short"
           class="menu-page__day-total"
@@ -445,7 +465,7 @@ window.onresize = () => handleResize();
       <div class="order-page__buttons">
         <button
           ref="orderButton"
-          v-show="route.params.userId"
+          v-show="route.params.userId && !isMenuOff"
           :disabled="!activeOrderBtn"
           type="button"
           class="button button--success _fw"
@@ -463,4 +483,10 @@ window.onresize = () => handleResize();
       @order-change="showMenuPage($event)"
     />
   </div>
+  <Popup v-if="isShowPopup" v-model="isShowPopup">
+    <template #title>Happy New Year!</template>
+    <template #content>
+      <p>The first delivery day is Wednesday, January 3</p>
+    </template>
+  </Popup>
 </template>

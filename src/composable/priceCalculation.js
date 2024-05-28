@@ -9,7 +9,8 @@ export default function usePriceCalculation() {
   const dishesArray = ref([]);
 
   const prices = computed(() => {
-    return pricesStore.prices?.breakfast_1 ? pricesStore.prices : DISH_PRICES;
+    // return pricesStore.prices?.breakfast_1 ? pricesStore.prices : DISH_PRICES;
+    return pricesStore.prices;
   });
 
   const totalPriceByDays = computed(() => {
@@ -114,92 +115,91 @@ export default function usePriceCalculation() {
 
     let totalCost = 0;
     if (mainDishes.length) {
-      console.log(prices.value, "prices");
       mainDishes.forEach((dish, index) => {
         let cost = 0;
         if (index === 0) {
-          cost = prices.value?.main_1 || 0;
+          cost =
+            prices.value?.main_1 && prices.value.main_1 !== null
+              ? prices.value.main_1
+              : 0;
         } else if (index === 1) {
-          cost = prices.value?.main_2 || 0;
+          cost =
+            prices.value?.main_2 && prices.value.main_2 !== null
+              ? prices.value.main_2
+              : 0;
         } else {
-          cost = prices.value?.main_3 || 0;
+          cost =
+            prices.value?.main_3 && prices.value.main_3 !== null
+              ? prices.value.main_3
+              : 0;
         }
         dish.price = cost;
         totalCost += cost * dish.quantity;
       });
 
       breakfasts.forEach((dish) => {
-        let cost = prices.value?.breakfast_2 || 0;
+        let cost =
+          prices.value?.breakfast_2 && prices.value.breakfast_2 !== null
+            ? prices.value.breakfast_2
+            : 0;
         dish.price = cost;
         totalCost += cost * dish.quantity;
       });
 
       vegetarians.forEach((dish) => {
-        let cost = prices.value?.vegetarian_2 || 0;
+        let cost =
+          prices.value?.vegetarian_2 && prices.value.vegetarian_2 !== null
+            ? prices.value.vegetarian_2
+            : 0;
         dish.price = cost;
         totalCost += cost * dish.quantity;
       });
-
-      // sides.forEach((dish) => {
-      //   let cost = prices.value?.side || 0;
-      //   dish.price = cost;
-      //   totalCost += cost * dish.quantity;
-      // });
     } else if (vegetarians.length) {
       vegetarians.forEach((dish, index) => {
         let cost =
           index === 0
-            ? prices.value?.vegetarian_1
-              ? prices.value.vegetarian_1
+            ? prices.value?.vegetarian_1 && prices.value?.vegetarian_1 !== null
+              ? prices.value?.vegetarian_1
               : 0
-            : prices.value?.vegetarian_2
-            ? prices.value.vegetarian_2
+            : prices.value?.vegetarian_2 && prices.value?.vegetarian_2 !== null
+            ? prices.value?.vegetarian_2
             : 0;
         dish.price = cost;
         totalCost += cost;
       });
 
       breakfasts.forEach((dish) => {
-        let cost = prices.value?.breakfast_2 || 0;
+        let cost =
+          prices.value?.breakfast_2 && prices.value.breakfast_2 !== null
+            ? prices.value.breakfast_2
+            : 0;
         dish.price = cost;
         totalCost += cost * dish.quantity;
       });
-
-      // sides.forEach((dish) => {
-      //   let cost = prices.value?.side || 0;
-      //   dish.price = cost;
-      //   totalCost += cost * dish.quantity;
-      // });
     } else if (breakfasts.length) {
       breakfasts.forEach((dish, index) => {
         let cost =
           index === 0
-            ? prices.value?.breakfast_1
-              ? prices.value.breakfast_1
+            ? prices.value?.breakfast_1 && prices.value?.breakfast_1 !== null
+              ? prices.value?.breakfast_1
               : 0
-            : prices.value?.breakfast_1
-            ? prices.value.breakfast_2
+            : prices.value?.breakfast_2 && prices.value?.breakfast_2 !== null
+            ? prices.value?.breakfast_2
             : 0;
         dish.price = cost;
         totalCost += cost;
       });
-
-      // sides.forEach((dish) => {
-      //   let cost = prices.value?.side || 0;
-      //   dish.price = cost;
-      //   totalCost += cost * dish.quantity;
-      // });
     }
 
     if (sides.length) {
       sides.forEach((dish, index) => {
         let cost =
           index === 0
-            ? prices.value?.side_1
-              ? prices.value.side_1
+            ? prices.value?.side_1 && prices.value?.side_1 !== null
+              ? prices.value?.side_1
               : 0
-            : prices.value?.side_1
-            ? prices.value.side_2
+            : prices.value?.side_2 && prices.value?.side_2 !== null
+            ? prices.value?.side_2
             : 0;
         dish.price = cost;
         totalCost += cost;
@@ -216,6 +216,11 @@ export default function usePriceCalculation() {
       breakfasts: breakfasts,
       sidesCount: sides.length,
       sides: sides,
+      allDishesCount:
+        mainDishes.length +
+        vegetarians.length +
+        breakfasts.length +
+        sides.length,
     };
 
     return totalObj;
@@ -231,16 +236,13 @@ export default function usePriceCalculation() {
   });
 
   const setDishTypeByMealType = (dishMeal) => {
-    if (dishMeal > 0 && dishMeal <= 5) {
+    if (dishMeal > 0 && dishMeal <= 9) {
       return "breakfast";
-    } else if (
-      (dishMeal > 5 && dishMeal <= 10) ||
-      (dishMeal > 20 && dishMeal <= 25)
-    ) {
+    } else if (dishMeal > 9 && dishMeal <= 29) {
       return "main";
-    } else if (dishMeal > 10 && dishMeal <= 15) {
+    } else if (dishMeal > 29 && dishMeal <= 39) {
       return "side";
-    } else if (dishMeal > 15) {
+    } else if (dishMeal > 39) {
       return "vegetarian";
     }
   };
@@ -299,13 +301,21 @@ export default function usePriceCalculation() {
   const getStartDishPriceByType = (type) => {
     switch (type) {
       case "breakfast":
-        return prices.value.breakfast_1;
+        return prices.value?.breakfast_1 && prices.value.breakfast_1 !== null
+          ? prices.value.breakfast_1
+          : 0;
       case "main":
-        return prices.value.main_1;
+        return prices.value?.main_1 && prices.value.main_1 !== null
+          ? prices.value.main_1
+          : 0;
       case "vegetarian":
-        return prices.value.vegetarian_1;
+        return prices.value?.main_1 && prices.value.vegetarian_1 !== null
+          ? prices.value.vegetarian_1
+          : 0;
       case "side":
-        return prices.value.side_1;
+        return prices.value?.side_1 && prices.value.side_1 !== null
+          ? prices.value.side_1
+          : 0;
       default:
         return null;
     }

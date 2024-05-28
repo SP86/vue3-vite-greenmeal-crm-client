@@ -10,20 +10,32 @@
 
     <ul class="header__menu menu-header">
       <li class="menu-header__item">
-        <a href="#" class="menu-header__link">How it works</a>
-      </li>
-      <li class="menu-header__item">
-        <router-link to="/adam" class="menu-header__link"
-          >Meal plans</router-link
+        <a
+          href="https://greenmeal.es/privacidad/"
+          class="menu-header__link"
+          target="_blank"
+          >Política de privacidad</a
         >
-        <!-- <a href="#" class="menu-header__link">Meal plans</a> -->
       </li>
       <li class="menu-header__item">
-        <a href="#" class="menu-header__link">Reviews</a>
+        <a
+          href="https://greenmeal.es/terminos/"
+          class="menu-header__link"
+          target="_blank"
+          >Términos de Uso y Aviso Legal</a
+        >
       </li>
       <li class="menu-header__item">
-        <a href="#" class="menu-header__link">FAQ</a>
+        <a
+          href="https://greenmeal.es/politica-de-cookies/"
+          class="menu-header__link"
+          target="_blank"
+          >Política de cookies</a
+        >
       </li>
+      <!-- <li class="menu-header__item">
+        <a href="javascript:void(0);" class="menu-header__link">FAQ</a>
+      </li> -->
     </ul>
 
     <div class="header__divider"></div>
@@ -57,10 +69,22 @@
   <div id="mobile-menu" class="mobile-menu hide">
     <div class="mobile-menu__wrapper">
       <ul>
-        <li><a href="#">How it works</a></li>
-        <li><a href="#">Meal plans</a></li>
-        <li><a href="#">Reviews</a></li>
-        <li><a href="#">FAQ</a></li>
+        <li>
+          <a href="https://greenmeal.es/privacidad/" target="_blank"
+            >Política de privacidad</a
+          >
+        </li>
+        <li>
+          <a href="https://greenmeal.es/terminos/" target="_blank"
+            >Términos de Uso y Aviso Legal</a
+          >
+        </li>
+        <li>
+          <a href="https://greenmeal.es/politica-de-cookies/" target="_blank"
+            >Política de cookies</a
+          >
+        </li>
+        <!-- <li><a href="#">FAQ</a></li> -->
       </ul>
       <div class="hr"></div>
       <div class="contact-phone">

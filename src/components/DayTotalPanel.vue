@@ -65,7 +65,7 @@ const totalСarbohydratesByDay = computed(() => {
         <span>{{ totalСarbohydratesByDay }} </span>
       </li>
       <li class="_total">
-        <span>€ {{ totalPrice }}</span>
+        <span style="width: 50px">€ {{ totalPrice }}</span>
       </li>
     </ul>
   </div>

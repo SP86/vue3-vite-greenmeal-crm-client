@@ -87,7 +87,11 @@ onUnmounted(() => {
         v-for="item in props.dishes"
         :key="item.id"
         class="dish swiper-slide"
-        :class="{ active: item.count > 0 }"
+        :class="{
+          active: item.count > 0,
+          'dish--new-label': item?.label === 'new',
+          'dish--popular-label': item?.label === 'popular',
+        }"
       >
         <DishInfo :item="item" />
       </div>

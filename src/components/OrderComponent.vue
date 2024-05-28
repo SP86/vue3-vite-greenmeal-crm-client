@@ -3,15 +3,27 @@ import DishCount from "@/components/DishCountComponent.vue";
 import Modal from "@/components/ModalComponent.vue";
 import ChangeDay from "@/components/ChangeDayButtonComponent.vue";
 
-import { ref, watch, onMounted, onUnmounted } from "vue";
+import {
+  ref,
+  unref,
+  computed,
+  reactive,
+  watch,
+  onMounted,
+  onUnmounted,
+} from "vue";
 import axios from "axios";
 import { useRoute } from "vue-router";
 import usePriceCalculation from "@/composable/priceCalculation";
 import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
 
+import { useOrderStore } from "@/stores/order";
+
 const route = useRoute();
 const { totalPrice, setDishesArray, totalPriceByDays, activeOrderBtn } =
   usePriceCalculation();
+
+const orderStore = useOrderStore();
 
 const {
   getCountOfMacronutrient,
@@ -21,10 +33,20 @@ const {
 
 const baseUrl = import.meta.env.VITE_APP_BASE_URL;
 const disabledBtn = ref(false);
+
 const showModal = ref(false);
 const orderComplete = ref(false);
 const orderId = ref(null);
+
 const pdfLink = ref("");
+const paymentFormRef = ref(null);
+
+const paymentData = reactive({
+  post_url: null,
+  Ds_SignatureVersion: null,
+  Ds_MerchantParameters: null,
+  Ds_Signature: null,
+});
 const comment = ref("");
 
 const props = defineProps({
@@ -38,6 +60,14 @@ const props = defineProps({
 });
 
 const items = ref(props.items);
+
+const isPaymentData = computed(() => {
+  return Object.values(paymentData).every((value) => value !== null);
+});
+
+const isAdamUser = computed(() => {
+  return route.params.userId === "adam";
+});
 
 const getPhoto = (photo) => {
   if (photo === null || photo === "null") {
@@ -79,7 +109,7 @@ const emits = defineEmits(["orderChange"]);
 const saveOrder = async () => {
   disabledBtn.value = !disabledBtn.value;
 
-  let orderResponse;
+  let orderResponse = {};
   try {
     const { data: response } = await axios.post(
       baseUrl + "api/save-order/" + route.params.userId,
@@ -88,9 +118,11 @@ const saveOrder = async () => {
         comment: comment.value,
       }
     );
-    // console.log(response, "response");
+    console.log(response, "response");
     const { data: orderDetails } = response;
-    orderResponse = orderDetails;
+
+    Object.assign(orderResponse, unref(orderDetails.client_order));
+    Object.assign(paymentData, unref(orderDetails.payment_data));
   } catch (e) {
     console.log(e);
   }
@@ -177,6 +209,7 @@ watch(
   (items) => {
     setDishesArray(items);
     macronutrientsDishesByDays.value = items;
+    orderStore.setItemsToOrder(items);
   },
   {
     deep: true,
@@ -233,11 +266,11 @@ onMounted(async () => {
     item.previous_day = true;
   });
 
-  window.addEventListener("beforeunload", handleClose);
+  // window.addEventListener("beforeunload", handleClose);
 });
 
 onUnmounted(() => {
-  window.removeEventListener("beforeunload", handleClose);
+  // window.removeEventListener("beforeunload", handleClose);
 });
 
 function handleClose(event) {
@@ -443,7 +476,7 @@ function handleClose(event) {
       <div class="complete-comment-label">Your comment:</div>
       <p>{{ comment }}</p>
     </div>
-    <div class="order-page__body" v-if="!orderComplete">
+    <div v-if="!orderComplete" class="order-page__body">
       <div class="order-page__buttons">
         <button
           type="button"
@@ -463,12 +496,43 @@ function handleClose(event) {
         </button>
       </div>
     </div>
+    <div v-else>
+      <div v-if="isPaymentData && isAdamUser" class="order-page__buttons">
+        <form ref="paymentFormRef" :action="paymentData.post_url" method="POST">
+          <input
+            type="hidden"
+            name="Ds_SignatureVersion"
+            :value="paymentData.Ds_SignatureVersion"
+          />
+          <input
+            type="hidden"
+            name="Ds_MerchantParameters"
+            :value="paymentData.Ds_MerchantParameters"
+          />
+          <input
+            type="hidden"
+            name="Ds_Signature"
+            :value="paymentData.Ds_Signature"
+          />
+        </form>
+        <button
+          type="button"
+          class="button button--success _fw"
+          @click="paymentFormRef.submit()"
+        >
+          <span>Pay order</span>
+        </button>
+      </div>
+    </div>
   </div>
+
   <Modal
     v-if="showModal"
     v-model="showModal"
     :order-id="orderId"
     :pdf-link="pdfLink"
+    :is-payment-button="isPaymentData && isAdamUser"
+    @submit-payment-button="paymentFormRef.submit()"
   />
 </template>
 <style scoped>

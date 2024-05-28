@@ -3,7 +3,6 @@ import { inject } from "vue";
 import DishCount from "@/components/DishCountComponent.vue";
 import DishAllergens from "@/components/DishAllergens.vue";
 import { ref, watch, nextTick, computed } from "vue";
-import { useRoute } from "vue-router";
 import usePriceCalculation from "@/composable/priceCalculation";
 import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
 import useGlobalFunctions from "@/composable/globalFunctions";
@@ -16,10 +15,9 @@ const props = defineProps({
 });
 
 const { getStartDishPriceByType, prices } = usePriceCalculation();
-const { isClientMenu } = useGlobalFunctions();
+const { isClientMenu, isMenuOff } = useGlobalFunctions();
 const { getCountOfMacronutrient } = useMacronutrientsCalculation();
 
-const route = useRoute();
 const infoBox = ref(null);
 const item = ref(props.item);
 const baseUrl = import.meta.env.VITE_APP_BASE_URL;
@@ -36,7 +34,7 @@ const getPrices = computed(() => {
     newPrice: 0,
   };
   const dishItemType = props.item.dish_type;
-  if (!totalPricesByDay.value.total) {
+  if (!totalPricesByDay.value.allDishesCount) {
     pricesObj = {
       oldPrice: getStartDishPriceByType(dishItemType),
       newPrice: getStartDishPriceByType(dishItemType),
@@ -221,7 +219,7 @@ watch(isOpen, async () => {
   <div>
     <div class="dish__title" :data-dish-id="item.id">{{ item.name }}</div>
     <div
-      :style="'background: url(' + getPhoto(item.photos) + ')'"
+      :style="'background-image: url(' + getPhoto(item.photos) + ')'"
       class="dish__body"
       :class="{ dish__body_active: isOpen }"
     >
@@ -272,17 +270,20 @@ watch(isOpen, async () => {
       </div>
     </div>
     <div class="dish__actions">
-      <DishCount v-if="route.params.userId" v-model="item.count" />
-      <div v-if="isClientMenu" class="dish__price">
+      <DishCount v-if="isClientMenu && !isMenuOff" v-model="item.count" />
+      <div v-if="isClientMenu && !isMenuOff" class="dish__price">
         <div
           v-if="
-            !totalPricesByDay.total || getPrices.newPrice !== getPrices.oldPrice
+            !totalPricesByDay.allDishesCount ||
+            getPrices.newPrice !== getPrices.oldPrice
           "
-          :class="{ 'line-through': totalPricesByDay.total }"
+          :class="{ 'line-through': totalPricesByDay.allDishesCount }"
         >
           € {{ getPrices.oldPrice }}
         </div>
-        <div v-if="totalPricesByDay.total">€ {{ getPrices.newPrice }}</div>
+        <div v-if="totalPricesByDay.allDishesCount">
+          € {{ getPrices.newPrice }}
+        </div>
       </div>
       <div class="dish__info-btn" @click="isOpen = !isOpen">
         <img src="@/assets/img/icons/info.svg" alt="info" />

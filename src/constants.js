@@ -1,15 +1,15 @@
 import moment from "moment";
 
 export const DISH_PRICES = {
-  main_1: 9,
-  main_2: 8,
-  main_3: 7,
-  breakfast_1: 7,
-  breakfast_2: 6,
-  vegetarian_1: 7,
-  vegetarian_2: 6,
-  side_1: 7,
-  side_2: 6,
+  main_1: 0,
+  main_2: 0,
+  main_3: 0,
+  breakfast_1: 0,
+  breakfast_2: 0,
+  vegetarian_1: 0,
+  vegetarian_2: 0,
+  side_1: 0,
+  side_2: 0,
 };
 
 export const DISH_AlLERGENS = ["dairy", "seafood", "nuts", "gluten", "meat"];

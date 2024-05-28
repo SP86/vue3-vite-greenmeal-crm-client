@@ -11,9 +11,12 @@ const props = defineProps({
   pdfLink: {
     type: String,
   },
+  isPaymentButton: {
+    type: Boolean,
+  },
 });
 
-const emits = defineEmits(["update:modelValue"]);
+const emits = defineEmits(["update:modelValue", "submitPaymentButton"]);
 
 const baseUrl = import.meta.env.VITE_APP_BASE_URL;
 
@@ -51,6 +54,14 @@ onMounted(() => {
         >
           <span>.PDF</span>
         </a>
+        <button
+          v-if="isPaymentButton"
+          type="button"
+          class="button button--success _fw"
+          @click="emits('submitPaymentButton')"
+        >
+          <span>Pay order</span>
+        </button>
         <button
           type="button"
           class="button button--default _fw"
