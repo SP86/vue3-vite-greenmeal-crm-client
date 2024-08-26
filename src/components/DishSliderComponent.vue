@@ -84,13 +84,15 @@ onUnmounted(() => {
   <div class="swiper dishes-slider menu-page__swiper">
     <div class="menu-page__dishes swiper-wrapper">
       <div
-        v-for="item in props.dishes"
+        v-for="(item, index) in props.dishes"
         :key="item.id"
         class="dish swiper-slide"
         :class="{
           active: item.count > 0,
           'dish--new-label': item?.label === 'new',
           'dish--popular-label': item?.label === 'popular',
+          'dish--green-bg': index === 0,
+          'dish--white-bg': index === 1,
         }"
       >
         <DishInfo :item="item" />

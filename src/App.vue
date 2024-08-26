@@ -9,5 +9,5 @@ import HeaderComponent from "./components/HeaderComponent.vue";
 </template>
 
 <style lang="scss">
-@import "assets/scss/style.scss";
+@import "assets/scss/style.scss?v=1.1";
 </style>

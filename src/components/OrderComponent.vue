@@ -2,6 +2,8 @@
 import DishCount from "@/components/DishCountComponent.vue";
 import Modal from "@/components/ModalComponent.vue";
 import ChangeDay from "@/components/ChangeDayButtonComponent.vue";
+import Popup from "@/components/PopupComponent.vue";
+import Payment from "@/components/PaymentComponent.vue";
 
 import {
   ref,
@@ -10,37 +12,47 @@ import {
   reactive,
   watch,
   onMounted,
-  onUnmounted,
+  onBeforeUnmount,
 } from "vue";
 import axios from "axios";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import moment from "moment";
 import usePriceCalculation from "@/composable/priceCalculation";
 import useMacronutrientsCalculation from "@/composable/macronutrientsCalculation";
-
+import useDatesCalculation from "@/composable/datesCalculation";
 import { useOrderStore } from "@/stores/order";
 
-const route = useRoute();
+const { currentIsoWeekday, isOwer11Pm } = useDatesCalculation();
 const { totalPrice, setDishesArray, totalPriceByDays, activeOrderBtn } =
   usePriceCalculation();
-
 const orderStore = useOrderStore();
-
 const {
   getCountOfMacronutrient,
   macronutrientsDishesByDays,
   totalMacronutrientByDays,
 } = useMacronutrientsCalculation();
 
+defineProps({
+  days: { type: Object, required: true },
+});
+const emits = defineEmits(["orderChange"]);
+
+const items = ref([]);
 const baseUrl = import.meta.env.VITE_APP_BASE_URL;
 const disabledBtn = ref(false);
-
+const route = useRoute();
+const router = useRouter();
 const showModal = ref(false);
+const isShowPopup = ref(false);
+const popup = reactive({
+  title: null,
+  message: null,
+});
 const orderComplete = ref(false);
 const orderId = ref(null);
-
 const pdfLink = ref("");
 const paymentFormRef = ref(null);
-
+const paymentMethod = ref("redsys");
 const paymentData = reactive({
   post_url: null,
   Ds_SignatureVersion: null,
@@ -48,18 +60,7 @@ const paymentData = reactive({
   Ds_Signature: null,
 });
 const comment = ref("");
-
-const props = defineProps({
-  items: {
-    type: Array,
-    default: function () {
-      return [];
-    },
-  },
-  days: { type: Object, required: true },
-});
-
-const items = ref(props.items);
+const isOrderEmpty = ref(false);
 
 const isPaymentData = computed(() => {
   return Object.values(paymentData).every((value) => value !== null);
@@ -92,21 +93,9 @@ const getDishPrice = (dishes = [], id) => {
   return `€ ${Math.floor(totalPrice * 100) / 100}`;
 };
 
-const emits = defineEmits(["orderChange"]);
-
-// const changeOrder = (day, id, quantity) => {
-//   items.value.forEach((item) => {
-//     if (item.day === day) {
-//       item.dishes.forEach(() => {
-//         if (quantity < 1) {
-//           item.dishes = item.dishes.filter((e) => e.dish_id !== id);
-//         }
-//       });
-//     }
-//   });
-// };
-
 const saveOrder = async () => {
+  if (!(await checkIsMenuActual())) return false;
+
   disabledBtn.value = !disabledBtn.value;
 
   let orderResponse = {};
@@ -115,6 +104,7 @@ const saveOrder = async () => {
       baseUrl + "api/save-order/" + route.params.userId,
       {
         days: items.value,
+        payment_method: paymentMethod.value,
         comment: comment.value,
       }
     );
@@ -130,9 +120,23 @@ const saveOrder = async () => {
   // console.log(orderResponse, "orderResponse");
   if (orderResponse?.id) {
     orderId.value = orderResponse.id;
-    pdfLink.value = orderResponse.pdf_link;
-    showModal.value = !showModal.value;
+    // pdfLink.value = orderResponse.pdf_link;
+    // showModal.value = !showModal.value;
     orderComplete.value = !orderComplete.value;
+
+    if (["redsys", "revolut"].includes(paymentMethod.value)) {
+      paymentFormRef.value?.submit();
+    }
+
+    if (["eden", "bank", "cash"].includes(paymentMethod.value)) {
+      router.push({
+        name: "completed-order",
+        query: {
+          client: orderResponse.client.alias,
+          order_id: orderResponse.id,
+        },
+      });
+    }
   } else {
     alert("Oops something went wrong");
   }
@@ -200,16 +204,12 @@ const setToNexDay = (dish, day, type) => {
   });
 };
 
-const changeOrder = () => {
-  emits("orderChange", items.value);
-};
-
 watch(
   () => items.value,
   (items) => {
     setDishesArray(items);
     macronutrientsDishesByDays.value = items;
-    orderStore.setItemsToOrder(items);
+    // orderStore.setItemsToOrder(items);
   },
   {
     deep: true,
@@ -217,68 +217,133 @@ watch(
   }
 );
 
-onMounted(async () => {
-  const dishesByMonday = await items.value.find(
-    (item) => item.dayName === "menu_for_monday"
-  ).dishes;
+const checkIsMenuActual = async () => {
+  items.value = orderStore.orderItems;
 
-  await dishesByMonday.forEach((item) => {
-    item.next_day = true;
-  });
+  let changesMade = false;
+  let currentDay = currentIsoWeekday.value;
+  let cutoffDay = currentDay;
 
-  const dishesByTuesday = await items.value.find(
-    (item) => item.dayName === "menu_for_tuesday"
-  ).dishes;
-
-  await dishesByTuesday.forEach((item) => {
-    item.next_day = true;
-  });
-
-  const dishesByWednesday = await items.value.find(
-    (item) => item.dayName === "menu_for_wednesday"
-  ).dishes;
-
-  await dishesByWednesday.forEach((item) => {
-    item.next_day = true;
-  });
-
-  const dishesByThursday = await items.value.find(
-    (item) => item.dayName === "menu_for_thursday"
-  ).dishes;
-
-  await dishesByThursday.forEach((item) => {
-    item.next_day = true;
-  });
-
-  const dishesByFriday = await items.value.find(
-    (item) => item.dayName === "menu_for_friday"
-  ).dishes;
-
-  await dishesByFriday.forEach((item) => {
-    item.next_day = true;
-  });
-
-  const dishesBySaturday = await items.value.find(
-    (item) => item.dayName === "menu_for_saturday"
-  ).dishes;
-
-  await dishesBySaturday.forEach((item) => {
-    item.previous_day = true;
-  });
-
-  // window.addEventListener("beforeunload", handleClose);
-});
-
-onUnmounted(() => {
-  // window.removeEventListener("beforeunload", handleClose);
-});
-
-function handleClose(event) {
-  if (!orderComplete.value) {
-    event.preventDefault();
-    return false;
+  if (currentDay === 1) {
+    cutoffDay = isOwer11Pm.value ? 2 : 1;
+  } else if (currentDay === 2) {
+    cutoffDay = isOwer11Pm.value ? 3 : 2;
+  } else if (currentDay === 3) {
+    cutoffDay = isOwer11Pm.value ? 4 : 3;
+  } else if (currentDay === 4 && !isOwer11Pm.value) {
+    cutoffDay = 4;
+  } else {
+    cutoffDay = 7;
   }
-}
+
+  items.value.forEach((item) => {
+    if (moment(item.date).isBefore(moment().isoWeekday(cutoffDay))) {
+      if (item.dishes.length > 0) {
+        item.dishes = [];
+        changesMade = true;
+      }
+    }
+  });
+
+  if (changesMade) {
+    const allDishesEmpty = items.value.every(
+      (item) => item.dishes.length === 0
+    );
+
+    if (allDishesEmpty) {
+      isOrderEmpty.value = true;
+    }
+
+    isShowPopup.value = true;
+    popup.title = "Your menu has been updated";
+    popup.message = "The deadline for one or few menus has passed";
+
+    return false;
+  } else {
+    return true;
+  }
+};
+
+const closePopup = () => {
+  if (isOrderEmpty.value) {
+    emits("orderChange");
+  }
+};
+
+const paymentButtonClick = () => {
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener("unload", handleUnload);
+  paymentFormRef.value.submit();
+  emits("orderChange");
+};
+
+onMounted(async () => {
+  await checkIsMenuActual();
+
+  const dayProperties = {
+    menu_for_monday: { key: "next_day", value: true },
+    menu_for_tuesday: { key: "next_day", value: true },
+    menu_for_wednesday: { key: "next_day", value: true },
+    menu_for_thursday: { key: "next_day", value: true },
+    menu_for_friday: { key: "next_day", value: true },
+    menu_for_saturday: { key: "previous_day", value: true },
+  };
+
+  items.value.forEach((item) => {
+    const property = dayProperties[item.dayName];
+    if (property?.key && item.dishes) {
+      item.dishes.forEach((dish) => {
+        dish[property.key] = property.value;
+      });
+    }
+  });
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("unload", handleUnload);
+});
+
+const showPayMessage = ref(false);
+
+const handleBeforeUnload = (event) => {
+  if (isPaymentData.value && orderComplete.value && isAdamUser.value) {
+    event.preventDefault();
+    event.returnValue = "";
+
+    isShowPopup.value = true;
+    popup.title = "Please select a payment method";
+    popup.message = null;
+
+    showPayMessage.value = true;
+  }
+};
+
+const handleUnload = () => {
+  if (orderComplete.value) {
+    emits("orderChange");
+  }
+};
+
+const handleBeforeUnloadClick = () => {
+  if (!isAdamUser.value) {
+    emits("orderChange");
+  } else {
+    if (!showPayMessage.value) {
+      handleBeforeUnload({ preventDefault: () => {} });
+    } else {
+      emits("orderChange");
+    }
+  }
+  // if (!showPayMessage.value && isAdamUser.value) {
+  //   handleBeforeUnload({ preventDefault: () => {} });
+  // } else {
+  //   emits("orderChange");
+  // }
+};
+
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", handleBeforeUnload);
+  window.removeEventListener("unload", handleUnload);
+});
 </script>
 <template>
   <div class="order-page">
@@ -439,7 +504,10 @@ function handleClose(event) {
               </div>
             </div>
           </div>
-          <div class="day-price order-item__title">
+          <div
+            class="day-price order-item__title"
+            :class="{ _complete: orderComplete }"
+          >
             <div class="day-price__day">
               Total ({{ item.day.toLowerCase() }}):
             </div>
@@ -477,6 +545,10 @@ function handleClose(event) {
       <p>{{ comment }}</p>
     </div>
     <div v-if="!orderComplete" class="order-page__body">
+      <Payment v-model="paymentMethod" />
+    </div>
+
+    <div v-if="!orderComplete" class="order-page__body">
       <div class="order-page__buttons">
         <button
           type="button"
@@ -489,38 +561,59 @@ function handleClose(event) {
         <button
           type="button"
           class="button button--default _fw"
-          @click="changeOrder"
+          @click="emits('orderChange')"
           :disabled="disabledBtn"
         >
           <span>Change</span>
         </button>
       </div>
     </div>
-    <div v-else>
-      <div v-if="isPaymentData && isAdamUser" class="order-page__buttons">
-        <form ref="paymentFormRef" :action="paymentData.post_url" method="POST">
-          <input
-            type="hidden"
-            name="Ds_SignatureVersion"
-            :value="paymentData.Ds_SignatureVersion"
-          />
-          <input
-            type="hidden"
-            name="Ds_MerchantParameters"
-            :value="paymentData.Ds_MerchantParameters"
-          />
-          <input
-            type="hidden"
-            name="Ds_Signature"
-            :value="paymentData.Ds_Signature"
-          />
-        </form>
+    <div v-else class="order-page__body">
+      <div class="order-page__buttons">
+        <template v-if="isPaymentData && isAdamUser">
+          <form
+            ref="paymentFormRef"
+            :action="paymentData.post_url"
+            method="POST"
+            target="_blank"
+          >
+            <input
+              type="hidden"
+              name="Ds_SignatureVersion"
+              :value="paymentData.Ds_SignatureVersion"
+            />
+            <input
+              type="hidden"
+              name="Ds_MerchantParameters"
+              :value="paymentData.Ds_MerchantParameters"
+            />
+            <input
+              type="hidden"
+              name="Ds_Signature"
+              :value="paymentData.Ds_Signature"
+            />
+          </form>
+          <button
+            type="button"
+            class="button button--success _fw"
+            @click="paymentButtonClick"
+          >
+            <span>Pay order</span>
+          </button>
+        </template>
+        <a
+          :href="baseUrl + '/storage/' + pdfLink"
+          target="_blank"
+          class="button button--success _fw"
+        >
+          <span>.PDF</span>
+        </a>
         <button
           type="button"
-          class="button button--success _fw"
-          @click="paymentFormRef.submit()"
+          class="button button--default _fw"
+          @click="handleBeforeUnloadClick"
         >
-          <span>Pay order</span>
+          <span>Close</span>
         </button>
       </div>
     </div>
@@ -532,8 +625,15 @@ function handleClose(event) {
     :order-id="orderId"
     :pdf-link="pdfLink"
     :is-payment-button="isPaymentData && isAdamUser"
-    @submit-payment-button="paymentFormRef.submit()"
+    @submit-payment-button="paymentButtonClick"
   />
+
+  <Popup v-if="isShowPopup" v-model="isShowPopup" @close="closePopup">
+    <template #title>{{ popup.title }}</template>
+    <template v-if="popup.message" #content>
+      <p>{{ popup.message }}</p>
+    </template>
+  </Popup>
 </template>
 <style scoped>
 .complete-comment-label {

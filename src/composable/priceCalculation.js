@@ -262,7 +262,7 @@ export default function usePriceCalculation() {
                   dish_id: item.id,
                   dish_name: item.name,
                   quantity: item.count,
-                  // photos: item.photos,
+                  photos: item.photos,
                   calories: item.calories,
                   carbohydrates: item.carbohydrates,
                   fats: item.fats,
@@ -271,8 +271,8 @@ export default function usePriceCalculation() {
                   dish_type: setDishTypeByMealType(item.dish_meal),
                   dish_count: item.dish_count,
                   menu_dish_id: item.menu_dish_id,
-                  // allergens: item.allergens,
-                  // ingredients_description: item.ingredients_description,
+                  allergens: item.allergens,
+                  ingredients_description: item.ingredients_description,
                   next_day: false,
                   previous_day: false,
                 };
@@ -285,6 +285,7 @@ export default function usePriceCalculation() {
         let dayObj = {
           day: day.title,
           dayName: day.name,
+          date: day.date,
           dishes: dayDishesArray,
         };
         dishes.push(dayObj);

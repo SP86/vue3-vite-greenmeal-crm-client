@@ -5,11 +5,8 @@ export default function useMacronutrientsCalculation() {
 
   const getCountOfMacronutrient = (macronutrient, count) => {
     const value =
-      macronutrient && count
-        ? Math.round(((macronutrient * count) / 100) * 1000) / 1000
-        : 0;
-
-    return Number.isInteger(value) ? value : value.toFixed(1);
+      macronutrient && count ? Math.floor((macronutrient * count) / 100) : 0;
+    return value;
   };
 
   const totalMacronutrientByDays = computed(() => {

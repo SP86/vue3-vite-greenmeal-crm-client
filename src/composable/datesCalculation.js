@@ -7,19 +7,19 @@ export default function useDatesCalculation() {
   const nowInMadrid = ref(moment().tz("Europe/Madrid"));
   // const nowInMadrid = ref(
   //   moment().tz("Europe/Madrid").set({
-  //     year: 2023,
+  //     year: 2024,
   //     month: 6,
-  //     date: 25,
-  //     hour: 10,
-  //     minute: 8,
+  //     date: 13,
+  //     hour: 7,
+  //     minute: 14,
   //     second: 0,
   //   })
   // );
 
   const time11AM = moment().tz("Europe/Madrid").set({
-    year: 2023,
+    year: 2024,
     month: 6,
-    date: 25,
+    date: 12,
     hour: 11,
     minute: 0,
     second: 0,
@@ -27,6 +27,7 @@ export default function useDatesCalculation() {
 
   const currentIsoWeekday = computed(() => {
     return moment().isoWeekday();
+    // return moment(`2024-06-12`).isoWeekday();
   });
 
   const isOwer11Pm = computed(() => {
@@ -105,6 +106,7 @@ export default function useDatesCalculation() {
   return {
     currentIsoWeekday,
     remainingOrderTime,
+    nowInMadrid,
     isOwer11Pm,
   };
 }
